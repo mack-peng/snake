@@ -1,8 +1,23 @@
 /**
  * v-first指令的混入方法
- * wowjs dist 为全局 IIFE（this.WOW），需副作用导入后取 window.WOW
+ * wowjs dist 为浏览器全局 IIFE（内部依赖 this.WeakMap 等），
+ * 不能作为 ES 模块导入 —— 走 ?url 资源 + <script> 注入
  */
-import "wowjs/dist/wow.js";
+import wowJsUrl from "wowjs/dist/wow.js?url";
+
+let loadPromise = null;
+function loadWowJs() {
+  if (window.WOW) return Promise.resolve();
+  if (!loadPromise) {
+    loadPromise = new Promise((resolve) => {
+      const s = document.createElement("script");
+      s.src = wowJsUrl;
+      s.onload = resolve;
+      document.head.appendChild(s);
+    });
+  }
+  return loadPromise;
+}
 
 export default {
   data() {
@@ -18,16 +33,17 @@ export default {
      * 延迟加载动画
      */
     alan_timoutAnimate() {
-      const options = {
-        boxClass: "wow",
-        animateClass: "animated",
-        mobile: true,
-        live: true,
-      };
-      const WOW = window.WOW;
-      if (WOW) {
-        new WOW(options).init();
-      }
+      loadWowJs().then(() => {
+        const WOW = window.WOW;
+        if (WOW) {
+          new WOW({
+            boxClass: "wow",
+            animateClass: "animated",
+            mobile: true,
+            live: true,
+          }).init();
+        }
+      });
     },
   },
 };

@@ -29,6 +29,11 @@
   .w1440 {
     overflow: visible;
   }
+  /* papercss .row 的负外边距在窄屏会撑出横向滚动 */
+  .row.site {
+    margin-left: 0;
+    margin-right: 0;
+  }
 }
 
 .spaceTip {

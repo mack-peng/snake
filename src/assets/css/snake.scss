@@ -30,7 +30,7 @@
 
 .content,
 .layout {
-  width: min(700px, 92vw);
+  width: min(700px, 100%);
   aspect-ratio: 1 / 1;
 }
 
@@ -87,7 +87,7 @@
 }
 
 .dpad_wrap {
-  width: min(700px, 92vw);
+  width: auto;
   margin: 14px auto 0;
 }
 
