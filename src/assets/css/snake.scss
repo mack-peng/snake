@@ -1,0 +1,118 @@
+@keyframes alan_scale {
+  0% {
+    transform: scale(1.05);
+    opacity: 0;
+  }
+
+  100% {
+    transform: scale(1);
+    opacity: 1;
+  }
+}
+
+.alan_scale-enter-active {
+  animation: alan_scale 0.3s;
+}
+
+.alan_scale-leave-active {
+  animation: alan_scale 0.3s reverse;
+}
+
+.snake_bg {
+  background: url("@image/snake/geometry.png");
+}
+
+.content {
+  position: relative;
+  border: 1px solid #888;
+  margin: 0 auto;
+}
+
+.content,
+.layout {
+  width: min(700px, 92vw);
+  aspect-ratio: 1 / 1;
+}
+
+.stop {
+  position: absolute;
+  inset: 0;
+  background: rgba(0, 0, 0, 0.7);
+}
+
+.stop img {
+  width: 30%;
+  position: absolute;
+  top: 50%;
+  left: 50%;
+  transform: translate(-50%, -50%);
+  border: 0;
+}
+
+.check_ul {
+  padding-left: 0;
+  margin: 0;
+}
+
+.check_ul li {
+  float: left;
+}
+
+.check_ul li::before {
+  content: "";
+}
+
+.snake_head {
+  background: rgb(211, 218, 206);
+}
+
+.snake_body {
+  background: rgb(170, 163, 163);
+}
+
+.food {
+  background: rgb(218, 153, 153);
+}
+
+.sidebar_h3 {
+  text-align: center;
+}
+
+.cont_btn .paper-btn {
+  margin: 0 1rem;
+}
+
+.score_father {
+  position: relative;
+}
+
+.dpad_wrap {
+  width: min(700px, 92vw);
+  margin: 14px auto 0;
+}
+
+.score {
+  width: 300px;
+  position: absolute;
+  top: 200px;
+  right: 20px;
+}
+
+@media (max-width: 767.98px) {
+  .snake_bg {
+    height: auto;
+    overflow: visible;
+  }
+
+  .noScroll {
+    height: auto;
+    overflow: visible;
+  }
+
+  .score {
+    position: static;
+    width: auto;
+    margin-top: 10px;
+    text-align: center;
+  }
+}
