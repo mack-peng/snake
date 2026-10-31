@@ -38,6 +38,7 @@ export default {
 .awe_back {
   width: 100vw;
   height: 100vh;
+  z-index: 20;
   position: fixed;
   top: 0;
   left: 0;

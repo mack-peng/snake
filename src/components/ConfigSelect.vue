@@ -1,7 +1,7 @@
 <template>
   <label class="config-select">
     <span class="config-select_title" v-if="title">{{ title }}</span>
-    <select class="select" :value="value" @change="apply($event.target)">
+    <select class="select" :value="value" @change="apply($event)">
       <option disabled value="">-- {{ title }} --</option>
       <option v-for="o in options" :key="o.label" :value="o">{{ o.label }}</option>
     </select>
@@ -19,8 +19,8 @@ export default {
     return { value: "" };
   },
   methods: {
-    apply(target) {
-      const item = this.options.find(o => o.label === target.value);
+    apply(e) {
+      const item = this.options[e.target.selectedIndex - 1];
       if (item) {
         this.value = item;
         this.$emit("apply", item);

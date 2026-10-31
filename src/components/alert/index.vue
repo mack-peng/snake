@@ -26,6 +26,6 @@ export default {
   left: 0;
   right: 0;
   margin: auto;
-  z-index: 1;
+  z-index: 30;
 }
 </style>
