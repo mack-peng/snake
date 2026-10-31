@@ -1,7 +1,7 @@
 <template>
   <label class="config-select">
     <span class="config-select_title" v-if="title">{{ title }}</span>
-    <select class="paper-select" :value="value" @change="apply($event.target)">
+    <select class="select" :value="value" @change="apply($event.target)">
       <option disabled value="">-- {{ title }} --</option>
       <option v-for="o in options" :key="o.label" :value="o">{{ o.label }}</option>
     </select>
@@ -38,19 +38,6 @@ export default {
 }
 .config-select_title {
   font-size: 14px;
-  color: #41403e;
-}
-.paper-select {
-  height: 36px;
-  padding: 0 0.75rem;
-  line-height: normal;
-  border: 2px solid #41403e;
-  border-radius: 5px;
-  box-shadow: 2px 2px 0 #41403e;
-  background: #fafafa;
-  font-family: inherit;
-  color: #41403e;
-  outline: none;
-  cursor: pointer;
+  color: var(--ui-dim, #94a3b8);
 }
 </style>

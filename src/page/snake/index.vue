@@ -1,93 +1,44 @@
 <template>
-  <div class="snake_bg">
-    <div class="w1440 noScroll">
-      <div
-        class="paper game-paper score_father"
-        v-first="{
-          name: 'translateRight',
-          duration: '0.5s',
-          delay: '0.8s',
-          offset: '0',
-        }"
-      >
-        <div class="config-select-bar">
-              <ConfigSelect
-                title="模式"
-                :options="modeOptions"
-                @apply="sideBarMethod"
-              />
-              <ConfigSelect
-                title="棋盘"
-                :options="boardOptions"
-                @apply="sideBarMethod"
-              />
-              <ConfigSelect
-                title="难度"
-                :options="difficultyOptions"
-                @apply="sideBarMethod"
-              />
-            </div>
-            <div class="row child-borders cont_btn">
-              <span
-                class="paper-btn"
-                v-for="(item, idx) in buttonList"
-                :key="idx"
-                @click="switchEvent(item)"
-                v-first="{
-                  name: 'translateTop',
-                  duration: '0.5s',
-                  delay: `${1 + idx * 0.2}s`,
-                  offset: '0',
-                }"
-                >{{ item.label }}</span
-              >
-            </div>
-            <div
-              class="content"
-              v-first="{
-                name: 'translateTop',
-                duration: '0.5s',
-                delay: `${1 + buttonList.length * 0.2}s`,
-                offset: '0',
-              }"
-            >
-              <div class="layout" ref="layout">
-                <ul
-                  class="check_ul cl"
-                  v-for="(col, cIdx) in formattCheck"
-                  :key="cIdx"
-                >
-                  <li
-                    v-for="(row, rIdx) in col"
-                    :key="rIdx"
-                    :style="handleLiStyle"
-                    :ref="`li_${cIdx}`"
-                  ></li>
-                </ul>
-              </div>
-              <transition name="alan_scale">
-                <div class="stop" v-show="isStop">
-                  <img src="../../assets/img/snake/stop.png" alt />
-                </div>
-              </transition>
-            </div>
-            <div class="dpad_wrap">
-              <DirectionPad @dir="setDirection" />
-            </div>
-            <div
-              class="score"
-              v-first="{
-                name: 'translateTop',
-                duration: '0.5s',
-                delay: '1.9s',
-                offset: '0',
-              }"
-            >
-              <div>{{ `当前得分：${score}分` }}</div>
-            </div>
-          </div>
-        </div>
+  <div class="snake_bg page-shell">
+    <header class="hud">
+      <div class="hud_title">贪恰蛇 Gluttonous Snake</div>
+      <span class="chip">得分 {{ score }}</span>
+      <div class="hud_spacer"></div>
+      <ConfigSelect title="模式" :options="modeOptions" @apply="sideBarMethod" />
+      <ConfigSelect title="棋盘" :options="boardOptions" @apply="sideBarMethod" />
+      <ConfigSelect title="难度" :options="difficultyOptions" @apply="sideBarMethod" />
+      <button class="btn" @click="switchEvent({ type: 'restart' })">重新开始</button>
+      <button class="btn btn--accent" @click="switchEvent({ type: 'stop' })">
+        {{ isStop ? "开始" : "暂停" }}
+      </button>
+    </header>
+    <main class="stage-panel game_layout">
+      <div class="layout" ref="layout">
+        <ul
+          class="check_ul cl"
+          v-for="(col, cIdx) in formattCheck"
+          :key="cIdx"
+        >
+          <li
+            v-for="(row, rIdx) in col"
+            :key="rIdx"
+            :style="handleLiStyle"
+            :ref="`li_${cIdx}`"
+          ></li>
+        </ul>
       </div>
+      <transition name="fade">
+        <div class="pause-overlay" v-show="isStop" @click="switchEvent({ type: 'stop' })">
+          <img src="../../assets/img/snake/stop.png" alt />
+          <p class="pause-hint">点击此处 / 空格键 开始</p>
+        </div>
+      </transition>
+    </main>
+    <div class="dpad_wrap">
+      <DirectionPad @dir="setDirection" />
+    </div>
+  </div>
+</template>
 </template>
 
 <script>

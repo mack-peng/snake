@@ -1,0 +1,136 @@
+/* Modern redesign layer (shared across Awesome game repos) */
+:root {
+  --ui-text: #e2e8f0;
+  --ui-dim: #94a3b8;
+  --ui-panel: rgba(15, 23, 42, 0.55);
+  --ui-line: rgba(148, 163, 184, 0.25);
+}
+
+.page-shell {
+  min-height: 100vh;
+  min-height: 100dvh;
+  display: flex;
+  flex-direction: column;
+  position: relative;
+}
+
+/* 压暗雨夜背景，保证前景对比度 */
+.page-shell::before {
+  content: "";
+  position: fixed;
+  inset: 0;
+  background: rgba(8, 12, 24, 0.6);
+  z-index: 0;
+  pointer-events: none;
+}
+
+.page-shell > * {
+  position: relative;
+  z-index: 1;
+}
+
+.hud {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  flex-wrap: wrap;
+  padding: 12px clamp(14px, 3vw, 28px);
+  background: var(--ui-panel);
+  backdrop-filter: blur(12px);
+  -webkit-backdrop-filter: blur(12px);
+  border-bottom: 1px solid var(--ui-line);
+  color: var(--ui-text);
+}
+
+.hud_title {
+  font-family: "Patrick Hand SC", cursive;
+  font-size: 22px;
+  letter-spacing: 1px;
+  margin-right: 6px;
+}
+
+.hud_spacer {
+  flex: 1 1 12px;
+}
+
+.chip {
+  padding: 6px 14px;
+  border-radius: 999px;
+  background: rgba(148, 163, 184, 0.14);
+  border: 1px solid var(--ui-line);
+  color: var(--ui-text);
+  font-size: 14px;
+  white-space: nowrap;
+}
+
+.btn {
+  padding: 9px 18px;
+  border-radius: 12px;
+  border: 1px solid var(--ui-line);
+  background: rgba(148, 163, 184, 0.12);
+  color: var(--ui-text);
+  font-size: 15px;
+  font-family: inherit;
+  cursor: pointer;
+  transition: transform 0.08s ease, background 0.15s ease;
+}
+
+.btn:hover {
+  background: rgba(148, 163, 184, 0.24);
+}
+
+.btn:active {
+  transform: scale(0.96);
+}
+
+.btn--accent,
+.btn--on {
+  background: var(--accent, #38bdf8);
+  border-color: transparent;
+  color: #0b1220;
+  font-weight: 600;
+}
+
+.select {
+  height: 38px;
+  padding: 0 14px;
+  border-radius: 10px;
+  background: rgba(148, 163, 184, 0.12);
+  color: var(--ui-text);
+  border: 1px solid var(--ui-line);
+  outline: none;
+  cursor: pointer;
+  font-family: inherit;
+}
+
+.select option {
+  color: #0b1220;
+}
+
+.stage-panel {
+  width: min(1040px, calc(100vw - 28px));
+  margin: clamp(12px, 3vh, 28px) auto;
+  border-radius: 16px;
+  overflow: hidden;
+  box-shadow: 0 24px 60px -20px rgba(0, 0, 0, 0.65);
+}
+
+.fade-enter-active,
+.fade-leave-active {
+  transition: opacity 0.25s ease;
+}
+
+.fade-enter,
+.fade-leave-to {
+  opacity: 0;
+}
+
+@media (max-width: 767.98px) {
+  .hud {
+    gap: 8px;
+  }
+
+  .hud_title {
+    width: 100%;
+  }
+}

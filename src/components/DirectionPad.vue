@@ -21,25 +21,28 @@ export default {
 <style scoped lang="scss">
 .dpad {
   display: grid;
-  grid-template-columns: repeat(3, 64px);
-  grid-template-rows: repeat(2, 56px);
+  grid-template-columns: repeat(3, 60px);
+  grid-template-rows: repeat(2, 54px);
   gap: 8px;
   justify-content: center;
   user-select: none;
   touch-action: manipulation;
 }
 .pad {
-  border: 2px solid #41403e;
-  border-radius: 5px;
-  box-shadow: 2px 2px 0 #41403e;
-  background: #fafafa;
-  color: #41403e;
-  font-size: 20px;
+  border: 1px solid var(--ui-line, rgba(148, 163, 184, 0.25));
+  border-radius: 16px;
+  background: rgba(148, 163, 184, 0.14);
+  backdrop-filter: blur(8px);
+  -webkit-backdrop-filter: blur(8px);
+  color: var(--ui-text, #e2e8f0);
+  font-size: 18px;
   cursor: pointer;
+  transition: transform 0.08s ease, background 0.15s ease;
 }
 .pad:active {
-  box-shadow: inset 2px 2px 0 #41403e;
-  background: #d0dbc2;
+  transform: scale(0.92);
+  background: var(--accent, #4ade80);
+  color: #0b1220;
 }
 .up { grid-column: 2; grid-row: 1; }
 .left { grid-column: 1; grid-row: 2; }
