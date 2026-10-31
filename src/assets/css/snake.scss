@@ -3,7 +3,8 @@
 }
 
 .game_layout {
-  width: min(700px, calc(100vw - 28px));
+  /* 宽高双约束：不超容器宽，也不超视口高（HUD + 边距预留 200px） */
+  width: min(700px, calc(100vw - 28px), calc(100dvh - 200px));
   aspect-ratio: 1 / 1;
   position: relative;
   background: rgba(15, 23, 42, 0.45);

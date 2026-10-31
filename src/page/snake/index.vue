@@ -97,6 +97,9 @@ export default {
     },
   },
   created() {
+    // 默认棋盘按设备自适应：手机 20×20 / 平板 30×30 / 桌面 50×50
+    const width = window.innerWidth;
+    this.checkerArea = width < 768 ? [20, 20] : width < 1024 ? [30, 30] : [50, 50];
     this.createSnake();
     this.$nextTick(() => {
       this.initStyle();
