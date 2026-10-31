@@ -1,0 +1,16 @@
+- generic [ref=e9]:
+  - banner [ref=e10]:
+    - generic [ref=e11]: 管道小鸟 Flappy Bird
+    - generic [ref=e12]: 得分 0
+    - generic [ref=e13]: 最高（normal）0分
+    - generic [ref=e14]:
+      - generic [ref=e15]: 难度
+      - combobox "难度" [ref=e16] [cursor=pointer]:
+        - option "-- 难度 --" [disabled] [selected]
+        - option "普通 (Normal)"
+        - option "困难 (Hard)"
+        - option "疯狂 (Crazy)"
+  - main [ref=e17]:
+    - generic [ref=e23]:
+      - button "开 始 游 戏" [ref=e24] [cursor=pointer]
+      - paragraph [ref=e25]: 空格键 / 点击屏幕跳跃

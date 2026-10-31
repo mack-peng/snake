@@ -90,3 +90,35 @@
     pointer-events: auto;
   }
 }
+
+/* 移动端 HUD：标题行 + 三等分下拉行 + 等宽按钮行（对齐设计稿） */
+@media (max-width: 767.98px) {
+  .hud_title {
+    width: auto;
+    flex: 1 1 auto;
+    font-size: 18px;
+  }
+
+  .hud_spacer {
+    flex: 1 1 0;
+  }
+
+  .hud .config-select {
+    flex: 1 1 calc(33.333% - 8px);
+    min-width: 0;
+  }
+
+  .hud .config-select_title {
+    display: none;
+  }
+
+  .hud .config-select .select {
+    width: 100%;
+    padding: 0 8px;
+    font-size: 14px;
+  }
+
+  .hud .btn {
+    flex: 1 1 calc(50% - 4px);
+  }
+}

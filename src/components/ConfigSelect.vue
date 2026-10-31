@@ -40,4 +40,29 @@ export default {
   font-size: 14px;
   color: var(--ui-dim, #94a3b8);
 }
+
+/* 手机/平板 HUD：隐藏外置标签，下拉自适应 */
+@media (max-width: 1023.98px) {
+  .config-select {
+    display: flex;
+    min-width: 0;
+  }
+  .config-select_title {
+    display: none;
+  }
+  .config-select .select {
+    min-width: 0;
+  }
+}
+
+/* 手机：下拉占满所在行 */
+@media (max-width: 767.98px) {
+  .config-select {
+    width: 100%;
+  }
+  .config-select .select {
+    width: 100%;
+    padding: 0 8px;
+  }
+}
 </style>
