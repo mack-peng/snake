@@ -74,10 +74,6 @@ const buttonList = [{
 {
   label: '暂停游戏 (空格键 SPACE)',
   type: 'stop'
-},
-{
-  label: 'TEST BUTTON',
-  type: 'alert'
 }
 ];
 

@@ -41,7 +41,9 @@ export default {
   color: #41403e;
 }
 .paper-select {
-  padding: 0.25rem 0.75rem;
+  height: 36px;
+  padding: 0 0.75rem;
+  line-height: normal;
   border: 2px solid #41403e;
   border-radius: 5px;
   box-shadow: 2px 2px 0 #41403e;

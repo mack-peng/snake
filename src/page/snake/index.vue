@@ -1,75 +1,16 @@
 <template>
   <div class="snake_bg">
     <div class="w1440 noScroll">
-      <div class="row site">
-        <div
-          class="sm-12 md-3 col sidebar"
-          v-first="{
-            name: 'translateLeft',
-            duration: '0.5s',
-            delay: '0.5s',
-            offset: '0',
-          }"
-        >
-          <div class="paper">
-            <h3
-              class="sidebar-title sidebar_h3"
-              v-first="{
-                name: 'translateTop',
-                duration: '0.5s',
-                delay: '0.8s',
-                offset: '0',
-              }"
-            >
-              贪恰蛇 Gluttonous Snake
-            </h3>
-            <div class="row">
-              <div
-                class="collapsible full-width"
-                v-for="(item, idx) in sidebar"
-                :key="idx"
-                v-first="{
-                  name: 'translateTop',
-                  duration: '0.5s',
-                  delay: `${1 + idx * 0.2}s`,
-                  offset: '0',
-                }"
-              >
-                <input
-                  :id="`collapsible-${item.title}`"
-                  type="radio"
-                  name="collapsible"
-                />
-                <label :for="`collapsible-${item.title}`">{{
-                  item.title
-                }}</label>
-                <div class="collapsible-body">
-                  <ul>
-                    <li
-                      class="paper_li"
-                      v-for="(child, cIdx) in item.children"
-                      :key="cIdx"
-                      @click="sideBarMethod(child)"
-                    >
-                      {{ child.label }}
-                    </li>
-                  </ul>
-                </div>
-              </div>
-            </div>
-          </div>
-        </div>
-        <div
-          class="sm-12 md-9 col"
-          v-first="{
-            name: 'translateRight',
-            duration: '0.5s',
-            delay: '0.8s',
-            offset: '0',
-          }"
-        >
-          <div class="paper score_father">
-            <div class="config-select-bar">
+      <div
+        class="paper game-paper score_father"
+        v-first="{
+          name: 'translateRight',
+          duration: '0.5s',
+          delay: '0.8s',
+          offset: '0',
+        }"
+      >
+        <div class="config-select-bar">
               <ConfigSelect
                 title="模式"
                 :options="modeOptions"
@@ -147,8 +88,6 @@
           </div>
         </div>
       </div>
-    </div>
-  </div>
 </template>
 
 <script>
@@ -165,7 +104,6 @@ export default {
     return {
       checkerArea: [50, 50],
       currentMode: "classicMode",
-      sidebar: SNAKE.sidebar,
       buttonList: SNAKE.buttonList,
       modeOptions: SNAKE.sidebar[0].children,
       boardOptions: SNAKE.sidebar[1].children,
@@ -344,9 +282,6 @@ export default {
           break;
         case "stop":
           this.stopGame();
-          break;
-        case "alert":
-          this.snakeAlert();
           break;
       }
     },

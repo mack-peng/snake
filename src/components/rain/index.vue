@@ -84,7 +84,7 @@ export default {
       rgba(255, 255, 255, 0.3),
       rgba(255, 255, 255, 0.6)
     );
-    z-index: 9999;
+    z-index: 0;
   }
 }
 </style>
