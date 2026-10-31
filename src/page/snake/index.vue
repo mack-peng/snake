@@ -43,6 +43,7 @@
 
 <script>
 import { SNAKE } from "@constants";
+import { DEVICE_PHONE, DEVICE_TABLET, deviceClass, onDeviceClassChange } from "../../utils/device.js";
 import { COMMIT } from "../../utils/index.js";
 import { $animate } from "../../mixins/index.js";
 import ConfigSelect from "../../components/ConfigSelect.vue";
@@ -97,9 +98,8 @@ export default {
     },
   },
   created() {
-    // 默认棋盘按设备自适应：手机 20×20 / 平板 30×30 / 桌面 50×50
-    const width = window.innerWidth;
-    this.checkerArea = width < 768 ? [20, 20] : width < 1024 ? [30, 30] : [50, 50];
+    this.boardByDevice = true;
+    this.checkerArea = this.deviceBoardArea();
     this.createSnake();
     this.$nextTick(() => {
       this.initStyle();
@@ -113,6 +113,20 @@ export default {
       this.observer = new ResizeObserver(() => this.initStyle());
       this.observer.observe(this.$refs.layout);
     });
+    // 设备档位变化（旋转/跨档拖窗）：未被手动覆盖时自动切棋盘档位
+    this.offDevice = onDeviceClassChange(() => {
+      if (!this.boardByDevice) return;
+      const area = this.deviceBoardArea();
+      if (area[0] === this.checkerArea[0]) return;
+      this.checkerArea = area;
+      this.initStyle();
+      this.restartGame();
+      this.HiAlert({
+        type: "secondary",
+        content: `已按屏幕调整为 ${area[0]} x ${area[1]} 棋盘`,
+        clear: true,
+      });
+    });
   },
   unmounted() {
     document.onkeydown = null;
@@ -121,8 +135,22 @@ export default {
       this.observer.disconnect();
       this.observer = null;
     }
+    if (this.offDevice) {
+      this.offDevice();
+      this.offDevice = null;
+    }
   },
   methods: {
+    /**
+     * 设备档位对应的默认棋盘
+     */
+    deviceBoardArea() {
+      const cls = deviceClass();
+      if (cls === DEVICE_PHONE) return [20, 20];
+      if (cls === DEVICE_TABLET) return [30, 30];
+      return [50, 50];
+    },
+
     /**
      * 侧边栏事件
      */
@@ -197,6 +225,7 @@ export default {
      * 选择棋盘size
      */
     chooseBoard({ size, label }) {
+      this.boardByDevice = false;
       switch (size) {
         case "twenty":
           this.checkerArea = [20, 20];
