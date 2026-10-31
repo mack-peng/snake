@@ -1,9 +1,18 @@
-/* Modern redesign layer (shared across Awesome game repos) */
+/* Modern redesign layer (shared across Awesome game repos)
+ * 连续流式响应式：字号 / 间距 / 控件 / 舞台 / 棋盘全部以 vw + clamp 随屏宽逐像素缩放，
+ * 断点只保留“显隐语义”（HUD 标题独占一行、ConfigSelect 标签隐藏、D-pad 显隐）。
+ */
 :root {
   --ui-text: #e2e8f0;
   --ui-dim: #94a3b8;
   --ui-panel: rgba(15, 23, 42, 0.55);
   --ui-line: rgba(148, 163, 184, 0.25);
+  --space-hud-y: clamp(8px, 1.2vw, 12px);
+  --space-hud-x: clamp(12px, 2.2vw, 28px);
+  --gap-hud: clamp(6px, 1vw, 12px);
+  --font-title: clamp(16px, 1.55vw, 22px);
+  --font-ui: clamp(12px, 1.1vw, 15px);
+  --font-chip: clamp(12px, 1vw, 14px);
 }
 
 .page-shell {
@@ -32,9 +41,9 @@
 .hud {
   display: flex;
   align-items: center;
-  gap: 12px;
   flex-wrap: wrap;
-  padding: 12px clamp(14px, 3vw, 28px);
+  gap: var(--gap-hud);
+  padding: var(--space-hud-y) var(--space-hud-x);
   background: var(--ui-panel);
   backdrop-filter: blur(12px);
   -webkit-backdrop-filter: blur(12px);
@@ -44,32 +53,32 @@
 
 .hud_title {
   font-family: "Patrick Hand SC", cursive;
-  font-size: 22px;
+  font-size: var(--font-title);
   letter-spacing: 1px;
-  margin-right: 6px;
+  margin-right: clamp(0px, 0.4vw, 6px);
 }
 
 .hud_spacer {
-  flex: 1 1 12px;
+  flex: 1 1 clamp(8px, 2vw, 24px);
 }
 
 .chip {
-  padding: 6px 14px;
+  padding: clamp(4px, 0.55vw, 6px) clamp(9px, 1.3vw, 14px);
   border-radius: 999px;
   background: rgba(148, 163, 184, 0.14);
   border: 1px solid var(--ui-line);
   color: var(--ui-text);
-  font-size: 14px;
+  font-size: var(--font-chip);
   white-space: nowrap;
 }
 
 .btn {
-  padding: 9px 18px;
-  border-radius: 12px;
+  padding: clamp(6px, 0.85vw, 9px) clamp(11px, 1.7vw, 18px);
+  border-radius: clamp(9px, 1vw, 12px);
   border: 1px solid var(--ui-line);
   background: rgba(148, 163, 184, 0.12);
   color: var(--ui-text);
-  font-size: 15px;
+  font-size: var(--font-ui);
   font-family: inherit;
   cursor: pointer;
   transition: transform 0.08s ease, background 0.15s ease;
@@ -92,15 +101,16 @@
 }
 
 .select {
-  height: 38px;
-  padding: 0 14px;
-  border-radius: 10px;
+  height: clamp(30px, 4.4vw, 38px);
+  padding: 0 clamp(8px, 1.1vw, 14px);
+  border-radius: clamp(8px, 0.9vw, 10px);
   background: rgba(148, 163, 184, 0.12);
   color: var(--ui-text);
   border: 1px solid var(--ui-line);
   outline: none;
   cursor: pointer;
   font-family: inherit;
+  font-size: var(--font-ui);
 }
 
 .select option {
@@ -108,9 +118,9 @@
 }
 
 .stage-panel {
-  width: min(1040px, calc(100vw - 28px));
-  margin: clamp(12px, 3vh, 28px) auto;
-  border-radius: 16px;
+  width: min(1040px, calc(100vw - clamp(16px, 3vw, 28px)));
+  margin: clamp(10px, 2.4vw, 28px) auto;
+  border-radius: clamp(10px, 1.2vw, 16px);
   overflow: hidden;
   box-shadow: 0 24px 60px -20px rgba(0, 0, 0, 0.65);
 }
@@ -125,40 +135,9 @@
   opacity: 0;
 }
 
+/* 手机：标题独占一行（布局语义，非尺寸） */
 @media (max-width: 767.98px) {
-  .hud {
-    gap: 8px;
-  }
-
   .hud_title {
     width: 100%;
-  }
-}
-
-/* 平板 HUD 紧凑化，保持单行布局（对齐设计稿） */
-@media (min-width: 768px) and (max-width: 1023.98px) {
-  .hud {
-    padding: 10px 14px;
-    gap: 8px;
-  }
-
-  .hud_title {
-    font-size: 20px;
-    margin-right: 2px;
-  }
-
-  .hud .btn {
-    padding: 8px 12px;
-    font-size: 13px;
-  }
-
-  .chip {
-    font-size: 13px;
-    padding: 5px 12px;
-  }
-
-  .select {
-    height: 34px;
-    font-size: 13px;
   }
 }

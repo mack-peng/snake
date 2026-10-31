@@ -31,14 +31,14 @@
 }
 
 .pause-overlay img {
-  width: 96px;
+  width: clamp(64px, 12vw, 96px);
   border: 0;
 }
 
 .pause-hint {
   color: var(--ui-text);
   opacity: 0.85;
-  font-size: 14px;
+  font-size: clamp(12px, 1.4vw, 14px);
   margin: 0;
 }
 
