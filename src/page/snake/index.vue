@@ -570,5 +570,5 @@ export default {
 </script>
 
 <style lang="scss" scoped>
-@import "@style/snake.scss";
+@use "@style/snake.scss";
 </style>
