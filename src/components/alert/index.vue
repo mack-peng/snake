@@ -1,5 +1,10 @@
 <template>
-  <div class="alert_box" :style="{ top: top + 'px' }">
+  <div
+    class="alert_box"
+    role="status"
+    aria-live="polite"
+    :style="{ top: top + 'px' }"
+  >
     <transition-group name="alanAlert">
       <div class="alert_style" v-for="item in alertQueue" :key="item.alertId">
         <div :class="`alert alert-${item.type}`">{{ item.content }}</div>

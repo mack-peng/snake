@@ -579,10 +579,6 @@ export default {
       this.isStop = true;
       this.hasStarted = false;
       this.resultOpen = true;
-      this.HiAlert({
-        type: "danger",
-        content: "游戏结束！",
-      });
     },
 
     /**

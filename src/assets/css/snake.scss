@@ -38,6 +38,7 @@
   border: 1px solid var(--ui-line);
   width: 100%;
   aspect-ratio: 1 / 1;
+  container-type: size;
 }
 
 .layout {
@@ -330,5 +331,40 @@
     bottom: auto;
     transform: translateY(-50%);
     justify-content: flex-end;
+  }
+}
+
+/* 小棋盘（320 / 横屏低高度）：结果卡紧凑排版，保证完整可见 */
+@container (max-height: 340px) {
+  .result-card {
+    width: calc(100% - 16px);
+    padding-top: 16px;
+    padding-bottom: 14px;
+  }
+  .result_title {
+    font-size: 16px;
+  }
+  .result_score {
+    margin-top: 4px;
+    font-size: 28px;
+  }
+  .result_label {
+    margin-top: 6px;
+    font-size: 11px;
+  }
+  .result_meta {
+    margin-top: 5px;
+    font-size: 10px;
+  }
+  .result_actions {
+    margin-top: 12px;
+  }
+  .result_primary,
+  .result_secondary {
+    height: 36px;
+  }
+  .result_close_hint {
+    margin-top: 8px;
+    display: block;
   }
 }
