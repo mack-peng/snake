@@ -3,7 +3,9 @@
     <span class="config-select_title" v-if="title">{{ title }}</span>
     <select class="select" :value="value" @change="apply($event)">
       <option disabled value="">-- {{ title }} --</option>
-      <option v-for="o in options" :key="o.label" :value="o">{{ o.label }}</option>
+      <option v-for="o in options" :key="o.label" :value="o.label">
+        {{ o.label }}
+      </option>
     </select>
   </label>
 </template>
@@ -14,15 +16,29 @@ export default {
   props: {
     title: { type: String, default: "选项" },
     options: { type: Array, required: true },
+    initial: { type: String, default: "" },
   },
   data() {
     return { value: "" };
   },
+  created() {
+    this.syncValue(this.initial);
+  },
+  watch: {
+    initial(v) {
+      this.syncValue(v);
+    },
+  },
   methods: {
+    syncValue(label) {
+      const hit =
+        (label && this.options.find(o => o.label === label)) || this.options[0];
+      this.value = hit ? hit.label : "";
+    },
     apply(e) {
-      const item = this.options[e.target.selectedIndex - 1];
+      const item = this.options.find(o => o.label === e.target.value);
       if (item) {
-        this.value = item;
+        this.value = item.label;
         this.$emit("apply", item);
       }
     },
@@ -62,7 +78,7 @@ export default {
   }
   .config-select .select {
     width: 100%;
-    padding: 0 8px;
+    padding: 0 26px 0 8px;
   }
 }
 </style>

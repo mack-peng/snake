@@ -2,38 +2,101 @@
   <div class="snake_bg page-shell">
     <header class="hud">
       <div class="hud_title">贪恰蛇 Gluttonous Snake</div>
-      <span class="chip">得分 {{ score }}</span>
+      <span class="chip" aria-live="polite">得分 {{ score }}</span>
       <div class="hud_spacer"></div>
-      <ConfigSelect title="模式" :options="modeOptions" @apply="sideBarMethod" />
-      <ConfigSelect title="棋盘" :options="boardOptions" @apply="sideBarMethod" />
-      <ConfigSelect title="难度" :options="difficultyOptions" @apply="sideBarMethod" />
+      <div class="hud_config">
+        <ConfigSelect
+          title="模式"
+          :options="modeOptions"
+          initial="经典"
+          @apply="sideBarMethod"
+        />
+        <ConfigSelect
+          title="棋盘"
+          :options="boardOptions"
+          :initial="boardInitial"
+          @apply="sideBarMethod"
+        />
+        <ConfigSelect
+          title="难度"
+          :options="difficultyOptions"
+          initial="普通"
+          @apply="sideBarMethod"
+        />
+      </div>
       <button class="btn" @click="switchEvent({ type: 'restart' })">重新开始</button>
       <button class="btn btn--accent" @click="switchEvent({ type: 'stop' })">
         {{ isStop ? "开始" : "暂停" }}
       </button>
     </header>
-    <main class="stage-panel game_layout">
-      <div class="layout" ref="layout">
-        <ul
-          class="check_ul cl"
-          v-for="(col, cIdx) in formattCheck"
-          :key="cIdx"
-        >
-          <li
-            v-for="(row, rIdx) in col"
-            :key="rIdx"
-            :style="handleLiStyle"
-            :ref="`li_${cIdx}`"
-          ></li>
-        </ul>
-      </div>
-      <transition name="fade">
-        <div class="pause-overlay" v-show="isStop" @click="switchEvent({ type: 'stop' })">
-          <img src="../../assets/img/snake/stop.png" alt />
-          <p class="pause-hint">点击此处 / 空格键 开始</p>
+    <div class="stage">
+      <main class="stage-panel game_layout">
+        <div class="layout" ref="layout">
+          <ul
+            class="check_ul cl"
+            v-for="(col, cIdx) in formattCheck"
+            :key="cIdx"
+          >
+            <li
+              v-for="(row, rIdx) in col"
+              :key="rIdx"
+              :style="handleLiStyle"
+              :ref="`li_${cIdx}`"
+            ></li>
+          </ul>
         </div>
-      </transition>
-    </main>
+        <transition name="fade">
+          <div
+            class="game-overlay game-overlay--start"
+            v-if="showStart"
+            @click="switchEvent({ type: 'stop' })"
+          >
+            <div class="overlay_circle overlay_circle--play">
+              <span class="overlay_play"></span>
+            </div>
+            <p class="overlay_title">准备开始</p>
+            <p class="overlay_hint">点击开始 / 空格键</p>
+            <p class="overlay_meta">{{ modeLabel }} · {{ boardInitial }}<span class="overlay_diff"> · {{ difficultyLabel }}</span></p>
+            <p class="overlay_sub">方向键移动 · 经典模式撞墙结束</p>
+          </div>
+        </transition>
+        <transition name="fade">
+          <div
+            class="game-overlay game-overlay--pause"
+            v-if="showPaused"
+            @click="switchEvent({ type: 'stop' })"
+          >
+            <div class="overlay_circle overlay_circle--pause">
+              <span class="overlay_bar"></span>
+              <span class="overlay_bar"></span>
+            </div>
+            <p class="overlay_title">已暂停</p>
+            <p class="overlay_hint">点击继续 / 空格键</p>
+            <p class="overlay_score">得分 {{ score }}</p>
+          </div>
+        </transition>
+        <transition name="fade">
+          <div class="result-veil" v-if="showResult" @click.self="closeResult">
+            <div class="result-card" role="dialog" aria-label="游戏结束">
+              <p class="result_title">游戏结束</p>
+              <p class="result_score">{{ finalScore }}</p>
+              <p class="result_label">本次得分</p>
+              <p class="result_meta">{{ resultMeta }}</p>
+              <div class="result_actions">
+                <button class="btn btn--accent result_primary" @click="replay">
+                  再来一局
+                </button>
+                <button class="btn result_secondary" @click="closeResult">关闭</button>
+              </div>
+              <p class="result_close_hint">点击空白处关闭</p>
+            </div>
+          </div>
+        </transition>
+      </main>
+      <p class="stage_hint">
+        方向键控制<span class="hint_extra"> · 空格暂停 · {{ checkerArea[0] }} × {{ checkerArea[1] }}</span>
+      </p>
+    </div>
     <div class="dpad_wrap">
       <DirectionPad @dir="setDirection" />
     </div>
@@ -70,10 +133,37 @@ export default {
       wait: true,
       speed: 80,
       score: 0,
+      hasStarted: false,
+      resultOpen: false,
+      finalScore: 0,
       observer: null,
     };
   },
   computed: {
+    showStart() {
+      return !this.resultOpen && !this.hasStarted;
+    },
+    showPaused() {
+      return !this.resultOpen && this.hasStarted && this.isStop;
+    },
+    showResult() {
+      return this.resultOpen;
+    },
+    boardInitial() {
+      const [r, c] = this.checkerArea;
+      return `${r} × ${c}`;
+    },
+    modeLabel() {
+      return this.currentMode === "freeMode" ? "自由" : "经典";
+    },
+    difficultyLabel() {
+      if (this.speed <= 30) return "疯狂";
+      if (this.speed <= 60) return "困难";
+      return "普通";
+    },
+    resultMeta() {
+      return `${this.modeLabel} · ${this.boardInitial} · ${this.difficultyLabel}`;
+    },
     formattCheck() {
       const [a, b] = this.checkerArea;
       const res = [];
@@ -111,6 +201,9 @@ export default {
     this.$nextTick(() => {
       this.observer = new ResizeObserver(() => this.initStyle());
       this.observer.observe(this.$refs.layout);
+      this.syncHudHeight();
+      this.hudObserver = new ResizeObserver(() => this.syncHudHeight());
+      this.hudObserver.observe(this.$el.querySelector(".hud"));
     });
     // 设备档位变化（旋转/跨档拖窗）：未被手动覆盖时自动切棋盘档位
     this.offDevice = onDeviceClassChange(() => {
@@ -139,6 +232,10 @@ export default {
       this.observer.disconnect();
       this.observer = null;
     }
+    if (this.hudObserver) {
+      this.hudObserver.disconnect();
+      this.hudObserver = null;
+    }
     if (this.offDevice) {
       this.offDevice();
       this.offDevice = null;
@@ -153,6 +250,16 @@ export default {
       if (cls === DEVICE_PHONE) return [20, 20];
       if (cls === DEVICE_TABLET) return [30, 30];
       return [50, 50];
+    },
+
+    /**
+     * HUD 实际高度写入 CSS 变量，供棋盘尺寸计算
+     */
+    syncHudHeight() {
+      const hud = this.$el.querySelector(".hud");
+      if (hud) {
+        document.documentElement.style.setProperty("--hud-h", `${hud.offsetHeight}px`);
+      }
     },
 
     /**
@@ -223,6 +330,9 @@ export default {
         case "twenty":
           this.checkerArea = [20, 20];
           break;
+        case "thirty":
+          this.checkerArea = [30, 30];
+          break;
         case "fifty":
           this.checkerArea = [50, 50];
           break;
@@ -268,6 +378,7 @@ export default {
      * 暂停游戏
      */
     stopGame() {
+      if (this.resultOpen) return;
       const { isStop } = this;
       if (!isStop) {
         clearInterval(this.moveTimer);
@@ -277,12 +388,12 @@ export default {
           clear: true,
         });
       } else {
-        this.HiImg({ isShow: "hide" });
         this.HiAlert({
           type: "success",
-          content: "游戏已开始！",
+          content: this.hasStarted ? "继续游戏！" : "游戏已开始！",
           clear: true,
         });
+        this.hasStarted = true;
         this.gameStart();
       }
       this.isStop = !isStop;
@@ -294,6 +405,8 @@ export default {
     restartGame() {
       this.score = 0;
       this.isStop = true;
+      this.hasStarted = false;
+      this.resultOpen = false;
       clearInterval(this.moveTimer);
       const { layout } = this.$refs;
       if (layout) {
@@ -458,17 +571,40 @@ export default {
     },
 
     /**
-     * 游戏结束
+     * 游戏结束：保留终局面，弹结果卡
      */
     gameOver() {
       clearInterval(this.moveTimer);
-      this.score = 0;
-      this.restartGame();
+      this.finalScore = this.score;
+      this.isStop = true;
+      this.hasStarted = false;
+      this.resultOpen = true;
       this.HiAlert({
         type: "danger",
         content: "游戏结束！",
       });
-      this.HiImg({ type: "fail" });
+    },
+
+    /**
+     * 再来一局：重置棋盘并直接开局
+     */
+    replay() {
+      this.restartGame();
+      this.hasStarted = true;
+      this.isStop = false;
+      this.gameStart();
+      this.HiAlert({
+        type: "success",
+        content: "游戏已开始！",
+        clear: true,
+      });
+    },
+
+    /**
+     * 关闭结果卡：回到准备开始态
+     */
+    closeResult() {
+      this.restartGame();
     },
 
     /**
@@ -566,6 +702,8 @@ export default {
         w = offsetWidth / b + "px",
         h = offsetHeight / a + "px";
       this.liStyle = { width: w, height: h };
+      layout.style.setProperty("--cell-w", w);
+      layout.style.setProperty("--cell-h", h);
     },
   },
 };

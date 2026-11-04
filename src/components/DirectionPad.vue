@@ -20,11 +20,10 @@ export default {
 
 <style scoped lang="scss">
 .dpad {
-  --pad: clamp(44px, 14vw, 64px);
   display: none;
-  grid-template-columns: repeat(3, var(--pad));
-  grid-template-rows: repeat(2, calc(var(--pad) * 0.9));
-  gap: clamp(4px, 1vw, 8px);
+  grid-template-columns: repeat(3, 56px);
+  grid-template-rows: repeat(2, 52px);
+  gap: 8px;
   justify-content: center;
   user-select: none;
   touch-action: manipulation;
@@ -38,14 +37,14 @@ export default {
 }
 .pad {
   border: 1px solid var(--ui-line, rgba(148, 163, 184, 0.25));
-  border-radius: clamp(10px, 2.2vw, 16px);
+  border-radius: 14px;
   background: rgba(148, 163, 184, 0.14);
   backdrop-filter: blur(8px);
   -webkit-backdrop-filter: blur(8px);
   color: var(--ui-text, #e2e8f0);
-  font-size: clamp(14px, 3.2vw, 18px);
+  font-size: 18px;
   cursor: pointer;
-  transition: transform 0.08s ease, background 0.15s ease;
+  transition: transform 0.15s ease-out, background 0.15s ease-out;
 }
 .pad:active {
   transform: scale(0.92);
