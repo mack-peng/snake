@@ -1,9 +1,9 @@
 <template>
   <div class="dpad">
-    <button class="pad up" @touchstart.prevent="tap('up')">▲</button>
-    <button class="pad left" @touchstart.prevent="tap('left')">◀</button>
-    <button class="pad right" @touchstart.prevent="tap('right')">▶</button>
-    <button class="pad down" @touchstart.prevent="tap('down')">▼</button>
+    <button class="pad up" @pointerdown.prevent="tap('up')">▲</button>
+    <button class="pad left" @pointerdown.prevent="tap('left')">◀</button>
+    <button class="pad right" @pointerdown.prevent="tap('right')">▶</button>
+    <button class="pad down" @pointerdown.prevent="tap('down')">▼</button>
   </div>
 </template>
 
@@ -21,13 +21,20 @@ export default {
 <style scoped lang="scss">
 .dpad {
   --pad: clamp(44px, 14vw, 64px);
-  display: grid;
+  display: none;
   grid-template-columns: repeat(3, var(--pad));
   grid-template-rows: repeat(2, calc(var(--pad) * 0.9));
   gap: clamp(4px, 1vw, 8px);
   justify-content: center;
   user-select: none;
   touch-action: manipulation;
+}
+
+/* 按指针能力显示（设计稿规则），不按视口宽度 */
+@media (pointer: coarse) {
+  .dpad {
+    display: grid;
+  }
 }
 .pad {
   border: 1px solid var(--ui-line, rgba(148, 163, 184, 0.25));
@@ -49,7 +56,4 @@ export default {
 .left { grid-column: 1; grid-row: 2; }
 .right { grid-column: 3; grid-row: 2; }
 .down { grid-column: 2; grid-row: 2; }
-@media (min-width: 1024px) {
-  .dpad { display: none; }
-}
 </style>

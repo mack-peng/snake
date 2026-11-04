@@ -14,28 +14,31 @@ const store = new Vuex.Store({
   },
   mutations: {
     /**
-     * 新增alert队列
+     * 新增alert队列（最多同时 3 条，3s 自动消失）
      */
     handleAlert(state, data) {
       state.alertId += 1;
+      const { alertId } = state;
       if (data.clear) {
         clearTimeout(state.alertClearTimer);
         state.alertQueue = [];
-        state.alertQueue.push({
-          ...data,
-          alertId: state.alertId,
-        });
+      }
+      state.alertQueue.push({
+        ...data,
+        alertId,
+      });
+      while (state.alertQueue.length > 3) {
+        state.alertQueue.shift();
+      }
+      if (data.clear) {
         state.alertClearTimer = setTimeout(() => {
-          state.alertQueue.shift(1);
-        }, 2000);
+          state.alertQueue = [];
+        }, 3000);
       } else {
-        state.alertQueue.push({
-          ...data,
-          alertId: state.alertId,
-        });
         setTimeout(() => {
-          state.alertQueue.shift(1);
-        }, 2000);
+          const idx = state.alertQueue.findIndex(a => a.alertId === alertId);
+          if (idx !== -1) state.alertQueue.splice(idx, 1);
+        }, 3000);
       }
     },
 

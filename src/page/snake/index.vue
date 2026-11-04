@@ -130,7 +130,10 @@ export default {
     });
   },
   unmounted() {
-    document.onkeydown = null;
+    if (this.onKeydown) {
+      document.removeEventListener("keydown", this.onKeydown);
+      this.onKeydown = null;
+    }
     clearInterval(this.moveTimer);
     if (this.observer) {
       this.observer.disconnect();
@@ -329,28 +332,42 @@ export default {
     },
 
     /**
-     * 按键改变方向
+     * 按键改变方向（仅游戏页语境：不劫持输入控件与可交互元素）
      */
     bindKeycode() {
-      document.onkeydown = ({ keyCode }) => {
-        switch (keyCode) {
+      this.onKeydown = event => {
+        const { target } = event;
+        if (
+          target &&
+          target.closest &&
+          target.closest("input, textarea, select, button, a, [contenteditable]")
+        ) {
+          return;
+        }
+        switch (event.keyCode) {
           case 37:
+            event.preventDefault();
             this.setDirection("left");
             break;
           case 38:
+            event.preventDefault();
             this.setDirection("up");
             break;
           case 39:
+            event.preventDefault();
             this.setDirection("right");
             break;
           case 40:
+            event.preventDefault();
             this.setDirection("down");
             break;
           case 32:
+            event.preventDefault();
             this.stopGame();
             break;
         }
       };
+      document.addEventListener("keydown", this.onKeydown);
     },
 
     /**

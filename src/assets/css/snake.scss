@@ -76,19 +76,32 @@
   margin: 14px auto 0;
 }
 
-/* 移动端方向键固定底部，避免折叠线以下需要滚动 */
-@media (max-width: 1023.98px) {
+/* 触屏指针：竖屏底部居中，横屏右侧；含安全区 */
+@media (pointer: coarse) {
   .dpad_wrap {
     position: fixed;
     left: 0;
     right: 0;
-    bottom: 10px;
+    bottom: calc(24px + env(safe-area-inset-bottom, 0px));
+    display: flex;
+    justify-content: center;
     z-index: 10;
     pointer-events: none;
   }
 
   .dpad_wrap .dpad {
     pointer-events: auto;
+  }
+}
+
+@media (pointer: coarse) and (orientation: landscape) {
+  .dpad_wrap {
+    left: auto;
+    right: 12px;
+    top: 50%;
+    bottom: auto;
+    transform: translateY(-50%);
+    justify-content: flex-end;
   }
 }
 
