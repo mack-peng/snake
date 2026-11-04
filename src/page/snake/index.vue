@@ -57,7 +57,9 @@
             <p class="overlay_title">准备开始</p>
             <p class="overlay_hint">点击开始 / 空格键</p>
             <p class="overlay_meta">{{ modeLabel }} · {{ boardInitial }}<span class="overlay_diff"> · {{ difficultyLabel }}</span></p>
-            <p class="overlay_sub">方向键移动 · 经典模式撞墙结束</p>
+            <p class="overlay_sub">
+              {{ currentMode === "freeMode" ? "方向键移动 · 自由模式边缘穿越" : "方向键移动 · 经典模式撞墙结束" }}
+            </p>
           </div>
         </transition>
         <transition name="fade">
