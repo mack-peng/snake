@@ -6,11 +6,6 @@ const sidebar = [{
     mode: 'classicMode'
   },
   {
-    label: '冒险 (Adventure)',
-    type: 'mode',
-    mode: 'adventureMode'
-  },
-  {
     label: '自由 (Freedom)',
     type: 'mode',
     mode: 'freeMode'

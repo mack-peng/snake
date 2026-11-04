@@ -39,7 +39,6 @@
     </div>
   </div>
 </template>
-</template>
 
 <script>
 import { SNAKE } from "@constants";
@@ -69,7 +68,7 @@ export default {
       moveTimer: undefined,
       isStop: true,
       wait: true,
-      speed: 200,
+      speed: 80,
       score: 0,
       observer: null,
     };
@@ -119,8 +118,10 @@ export default {
       const area = this.deviceBoardArea();
       if (area[0] === this.checkerArea[0]) return;
       this.checkerArea = area;
-      this.initStyle();
-      this.restartGame();
+      this.$nextTick(() => {
+        this.initStyle();
+        this.restartGame();
+      });
       this.HiAlert({
         type: "secondary",
         content: `已按屏幕调整为 ${area[0]} x ${area[1]} 棋盘`,
@@ -172,25 +173,12 @@ export default {
     /**
      * 选择模式
      */
-    chooseMode({ type, mode, label }) {
-      let tip = `已切换为${label}`;
-      let alertType = "success";
-      switch (mode) {
-        case "classicMode":
-          this.currentMode = mode;
-          break;
-        case "freeMode":
-          this.currentMode = mode;
-          break;
-        case "adventureMode":
-          tip = `暂未开放`;
-          alertType = "warning";
-          break;
-      }
+    chooseMode({ mode, label }) {
+      this.currentMode = mode;
       this.restartGame();
       this.HiAlert({
-        type: alertType,
-        content: tip,
+        type: "success",
+        content: `已切换为${label}`,
       });
     },
 
@@ -225,8 +213,10 @@ export default {
      * 选择棋盘size
      */
     chooseBoard({ size, label }) {
-      this.boardByDevice = false;
       switch (size) {
+        case "border":
+          this.boardBorder = !this.boardBorder;
+          return;
         case "twenty":
           this.checkerArea = [20, 20];
           break;
@@ -239,16 +229,18 @@ export default {
         case "hundred":
           this.checkerArea = [100, 100];
           break;
-        case "border":
-          this.boardBorder = !this.boardBorder;
+        default:
           return;
       }
+      this.boardByDevice = false;
       this.HiAlert({
         type: "success",
         content: `棋盘已设置为${label}`,
       });
-      this.initStyle();
-      this.restartGame();
+      this.$nextTick(() => {
+        this.initStyle();
+        this.restartGame();
+      });
     },
 
     /**
@@ -301,10 +293,11 @@ export default {
       this.isStop = true;
       clearInterval(this.moveTimer);
       const { layout } = this.$refs;
-      const liArr = layout.querySelectorAll("li");
-      for (let i = 0, l = liArr.length; i < l; i++) {
-        const li = liArr[i];
-        li.className = "";
+      if (layout) {
+        const liArr = layout.querySelectorAll("li");
+        for (let i = 0, l = liArr.length; i < l; i++) {
+          liArr[i].className = "";
+        }
       }
       this.createSnake();
       this.drawSnake();
@@ -365,6 +358,7 @@ export default {
      */
     snakeMove() {
       const { direction, snake, currentMode } = this;
+      if (!direction) return;
       let [r, c] = snake[0];
       let headAfter = [];
       switch (direction) {
@@ -381,10 +375,6 @@ export default {
           headAfter = [r, c + 1];
           break;
       }
-      if (this.judgeHeadInSelfBody()) {
-        this.gameOver();
-        return;
-      }
       const res = this[currentMode](headAfter);
       switch (currentMode) {
         case "classicMode":
@@ -397,14 +387,21 @@ export default {
           headAfter = res;
           break;
       }
-      if (this.isAteFood()) {
-        this.createFood();
-      } else {
+      if (this.hitsSelf(headAfter)) {
+        this.gameOver();
+        return;
+      }
+      const ate = this.isAteFood();
+      if (!ate) {
         const [row, col] = snake.pop();
-        const li = this.$refs[`li_${row}`][col];
-        li.className = "";
+        const rowRef = this.$refs[`li_${row}`];
+        const li = rowRef && rowRef[col];
+        if (li) li.className = "";
       }
       snake.unshift(headAfter);
+      if (ate) {
+        this.createFood();
+      }
       this.drawSnake();
     },
 
@@ -503,16 +500,11 @@ export default {
      */
     drawSnake() {
       const { snake } = this;
-      snake.map(([a, b], idx) => {
-        const li = this.$refs[`li_${a}`][b] || undefined;
-        if (!li) {
-          return;
-        }
-        if (idx == 0) {
-          li.className = "snake_head";
-        } else {
-          li.className = "snake_body";
-        }
+      snake.forEach(([a, b], idx) => {
+        const rowRef = this.$refs[`li_${a}`];
+        const li = rowRef && rowRef[b];
+        if (!li) return;
+        li.className = idx == 0 ? "snake_head" : "snake_body";
       });
     },
 
@@ -524,33 +516,26 @@ export default {
         checkerArea: [x, y],
         snake,
       } = this;
-      while (true) {
-        const row = Math.floor(Math.random() * x);
-        const col = Math.floor(Math.random() * y);
-        for (let i = 0; i < snake.length; i++) {
-          const [a, b] = snake[i];
-          if (row != a && col != b) {
-            this.food = [row, col];
-            const food = this.$refs[`li_${row}`][col];
-            food.className = "food";
-            return;
-          }
-        }
-      }
+      const taken = new Set(snake.map(([a, b]) => `${a},${b}`));
+      if (taken.size >= x * y) return;
+      let row;
+      let col;
+      do {
+        row = Math.floor(Math.random() * x);
+        col = Math.floor(Math.random() * y);
+      } while (taken.has(`${row},${col}`));
+      this.food = [row, col];
+      const rowRef = this.$refs[`li_${row}`];
+      const cell = rowRef && rowRef[col];
+      if (cell) cell.className = "food";
     },
 
     /**
-     * 判断蛇头是否在自己身上
+     * 判断将要到达的位置是否撞到自己（尾巴即将让位，不计入）
      */
-    judgeHeadInSelfBody() {
-      const body = JSON.parse(JSON.stringify(this.snake));
-      const [x, y] = body.shift(1);
-      for (let i = 0; i < body.length; i++) {
-        const [a, b] = body[i];
-        if (a == x && b == y) {
-          return true;
-        }
-      }
+    hitsSelf([row, col]) {
+      const body = this.snake.slice(0, -1);
+      return body.some(([a, b]) => a == row && b == col);
     },
 
     /**
@@ -561,8 +546,8 @@ export default {
       if (!layout) return;
       const { offsetWidth, offsetHeight } = layout,
         [a, b] = this.checkerArea,
-        w = parseInt(offsetWidth / b) + "px",
-        h = parseInt(offsetHeight / a) + "px";
+        w = offsetWidth / b + "px",
+        h = offsetHeight / a + "px";
       this.liStyle = { width: w, height: h };
     },
   },
