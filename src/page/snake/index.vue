@@ -31,17 +31,12 @@
     </header>
     <div class="stage">
       <main class="stage-panel game_layout">
-        <div class="layout" ref="layout">
-          <ul
-            class="check_ul cl"
-            v-for="(col, cIdx) in formattCheck"
-            :key="cIdx"
-          >
+        <div class="layout" ref="layout" :class="{ bordered: boardBorder }">
+          <ul class="check_ul cl" v-for="r in boardRows" :key="r">
             <li
-              v-for="(row, rIdx) in col"
-              :key="rIdx"
-              :style="handleLiStyle"
-              :ref="`li_${cIdx}`"
+              v-for="c in boardCols"
+              :key="c"
+              :ref="`li_${r - 1}`"
             ></li>
           </ul>
         </div>
@@ -109,13 +104,11 @@
 import { SNAKE } from "@constants";
 import { DEVICE_PHONE, DEVICE_TABLET, deviceClass, onDeviceClassChange } from "../../utils/device.js";
 import { COMMIT } from "../../utils/index.js";
-import { $animate } from "../../mixins/index.js";
 import ConfigSelect from "../../components/ConfigSelect.vue";
 import DirectionPad from "../../components/DirectionPad.vue";
 export default {
   name: "SnakeGame",
   components: { ConfigSelect, DirectionPad },
-  mixins: [$animate],
   data() {
     return {
       checkerArea: [50, 50],
@@ -124,7 +117,6 @@ export default {
       modeOptions: SNAKE.sidebar[0].children,
       boardOptions: SNAKE.sidebar[1].children,
       difficultyOptions: SNAKE.sidebar[2].children,
-      liStyle: {},
       snakeLength: 4,
       boardBorder: false,
       snake: [],
@@ -166,26 +158,11 @@ export default {
     resultMeta() {
       return `${this.modeLabel} · ${this.boardInitial} · ${this.difficultyLabel}`;
     },
-    formattCheck() {
-      const [a, b] = this.checkerArea;
-      const res = [];
-      for (let i = 0; i < a; i++) {
-        const arr = [];
-        for (let n = 0; n < b; n++) {
-          arr[n] = n;
-        }
-        res[i] = arr;
-      }
-      return res;
+    boardRows() {
+      return this.checkerArea[0];
     },
-
-    handleLiStyle() {
-      let { liStyle, boardBorder } = this;
-      const border = "1px solid #aaa";
-      if (boardBorder) {
-        liStyle = { ...liStyle, border };
-      }
-      return liStyle;
+    boardCols() {
+      return this.checkerArea[1];
     },
   },
   created() {
@@ -201,7 +178,14 @@ export default {
   mounted() {
     this.bindKeycode();
     this.$nextTick(() => {
-      this.observer = new ResizeObserver(() => this.initStyle());
+      // rAF 合并 HUD→棋盘的级联 resize，每帧最多重算一次格距
+      this.observer = new ResizeObserver(() => {
+        if (this.layoutRaf) cancelAnimationFrame(this.layoutRaf);
+        this.layoutRaf = requestAnimationFrame(() => {
+          this.layoutRaf = null;
+          this.initStyle();
+        });
+      });
       this.observer.observe(this.$refs.layout);
       this.syncHudHeight();
       this.hudObserver = new ResizeObserver(() => this.syncHudHeight());
@@ -230,6 +214,10 @@ export default {
       this.onKeydown = null;
     }
     clearInterval(this.moveTimer);
+    if (this.layoutRaf) {
+      cancelAnimationFrame(this.layoutRaf);
+      this.layoutRaf = null;
+    }
     if (this.observer) {
       this.observer.disconnect();
       this.observer = null;
@@ -410,12 +398,9 @@ export default {
       this.hasStarted = false;
       this.resultOpen = false;
       clearInterval(this.moveTimer);
-      const { layout } = this.$refs;
-      if (layout) {
-        const liArr = layout.querySelectorAll("li");
-        for (let i = 0, l = liArr.length; i < l; i++) {
-          liArr[i].className = "";
-        }
+      // 只清理上一帧有类名的格子（蛇身 + 食物），避免 O(cells) 全量扫 DOM
+      for (const [row, col] of [...this.snake, this.food]) {
+        this.setCell(row, col, "");
       }
       this.createSnake();
       this.drawSnake();
@@ -526,15 +511,16 @@ export default {
       const ate = this.isAteFood();
       if (!ate) {
         const [row, col] = snake.pop();
-        const rowRef = this.$refs[`li_${row}`];
-        const li = rowRef && rowRef[col];
-        if (li) li.className = "";
+        this.setCell(row, col, "");
       }
       snake.unshift(headAfter);
       if (ate) {
         this.createFood();
       }
-      this.drawSnake();
+      // 增量绘制：每 tick 只有新头 + 旧头（降级为身体）两格变化
+      this.setCell(headAfter[0], headAfter[1], "snake_head");
+      const prevHead = snake[1];
+      this.setCell(prevHead[0], prevHead[1], "snake_body");
     },
 
     /**
@@ -609,6 +595,7 @@ export default {
      * 判断是否吃到了食物
      */
     isAteFood() {
+      if (!this.food.length) return false;
       const [foodRow, foodCol] = this.food;
       const [headRow, headCol] = this.snake[0];
       if (foodRow == headRow && foodCol == headCol) {
@@ -647,61 +634,80 @@ export default {
     },
 
     /**
-     * 画一条蛇
+     * 写单格类名（refs 直取，越界/换盘竞态时静默跳过）
+     */
+    setCell(row, col, cls) {
+      const rowRef = this.$refs[`li_${row}`];
+      const li = rowRef && rowRef[col];
+      if (li) li.className = cls;
+    },
+
+    /**
+     * 画一条蛇（整幅重绘：开局 / 换盘后使用）
      */
     drawSnake() {
       const { snake } = this;
       snake.forEach(([a, b], idx) => {
-        const rowRef = this.$refs[`li_${a}`];
-        const li = rowRef && rowRef[b];
-        if (!li) return;
-        li.className = idx == 0 ? "snake_head" : "snake_body";
+        this.setCell(a, b, idx == 0 ? "snake_head" : "snake_body");
       });
     },
 
     /**
-     * 创建一个食物
+     * 创建一个食物：稀疏时拒绝采样（期望 O(1)），过半占用改为有界线性扫描
      */
     createFood() {
       const {
         checkerArea: [x, y],
         snake,
       } = this;
+      const total = x * y;
+      if (snake.length >= total) {
+        this.food = [];
+        return;
+      }
       const taken = new Set(snake.map(([a, b]) => `${a},${b}`));
-      if (taken.size >= x * y) return;
       let row;
       let col;
-      do {
-        row = Math.floor(Math.random() * x);
-        col = Math.floor(Math.random() * y);
-      } while (taken.has(`${row},${col}`));
+      if (taken.size < total / 2) {
+        do {
+          row = Math.floor(Math.random() * x);
+          col = Math.floor(Math.random() * y);
+        } while (taken.has(`${row},${col}`));
+      } else {
+        const start = Math.floor(Math.random() * total);
+        for (let i = 0; i < total; i++) {
+          const idx = (start + i) % total;
+          row = Math.floor(idx / y);
+          col = idx % y;
+          if (!taken.has(`${row},${col}`)) break;
+        }
+      }
       this.food = [row, col];
-      const rowRef = this.$refs[`li_${row}`];
-      const cell = rowRef && rowRef[col];
-      if (cell) cell.className = "food";
+      this.setCell(row, col, "food");
     },
 
     /**
      * 判断将要到达的位置是否撞到自己（尾巴即将让位，不计入）
      */
     hitsSelf([row, col]) {
-      const body = this.snake.slice(0, -1);
-      return body.some(([a, b]) => a == row && b == col);
+      const body = this.snake;
+      const last = body.length - 1;
+      for (let i = 0; i < last; i++) {
+        if (body[i][0] == row && body[i][1] == col) return true;
+      }
+      return false;
     },
 
     /**
-     * 初始化棋盘样式
+     * 初始化棋盘样式：只写 CSS 变量，格子尺寸由样式表读取，不再触发 10k 次响应式 patch
      */
     initStyle() {
       const { layout } = this.$refs;
       if (!layout) return;
-      const { offsetWidth, offsetHeight } = layout,
-        [a, b] = this.checkerArea,
-        w = offsetWidth / b + "px",
-        h = offsetHeight / a + "px";
-      this.liStyle = { width: w, height: h };
-      layout.style.setProperty("--cell-w", w);
-      layout.style.setProperty("--cell-h", h);
+      const { offsetWidth, offsetHeight } = layout;
+      const [a, b] = this.checkerArea;
+      layout.style.setProperty("--cell-w", `${offsetWidth / b}px`);
+      layout.style.setProperty("--cell-h", `${offsetHeight / a}px`);
     },
   },
 };

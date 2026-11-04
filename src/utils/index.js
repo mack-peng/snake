@@ -1,4 +1,3 @@
-import _ from "lodash";
 import store from "../store/index.js";
 
 const SET_SESSION = (E, F) => window.sessionStorage.setItem(E, F);
@@ -11,7 +10,7 @@ const DEL_LOCAL = J => window.localStorage.removeItem(J);
 
 const COMMIT = (STR, DATA) => {
   if (typeof STR === "string") return store.commit(STR, DATA);
-  if (typeof STR === "object" && !_.isEmpty(STR)) {
+  if (typeof STR === "object" && STR !== null && Object.keys(STR).length > 0) {
     for (const key in STR) {
       store.commit(key, STR[key]);
     }

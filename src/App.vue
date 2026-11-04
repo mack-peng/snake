@@ -34,6 +34,7 @@ export default {
         COMMIT({
           submit: {
             alertQueue: [],
+            alertTimers: {},
             cartoon: {},
           },
         });

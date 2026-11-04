@@ -279,6 +279,13 @@
 
 .check_ul li {
   float: left;
+  width: var(--cell-w, 14px);
+  height: var(--cell-h, 14px);
+}
+
+/* 边框开关只切 .layout 上一个类，不触发 10k 节点的响应式更新 */
+.layout.bordered .check_ul li {
+  border: 1px solid #aaa;
 }
 
 .check_ul li::before {
