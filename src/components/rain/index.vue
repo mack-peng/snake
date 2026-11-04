@@ -1,6 +1,6 @@
 <template>
   <div>
-    <div class="rain" ref="rain"></div>
+    <div class="rain"></div>
     <span
       class="rain--item"
       v-for="(item, idx) in rains"
@@ -22,35 +22,37 @@ export default {
       rains: [],
       rainTimer: null,
       raceTimer: null,
-      maxHeight: 0,
     };
   },
   created() {
     this.initialRains();
     this.initialRace();
-    this.$nextTick(() => {
-      this.maxHeight = this.$refs.rain.clientHeight;
-    });
   },
   methods: {
     initialRains() {
       this.rainTimer = setInterval(() => {
-        const rainItem = {
+        // push 走 Vue 2 数组补丁，避免每次 O(n) 整组复制
+        this.rains.push({
           top: -50,
           left: `${~~(Math.random() * 100)}%`,
           speed: 0,
-        };
-        this.rains = [...this.rains, rainItem];
+        });
       }, CREAT_RAIN_SPACE_TIME);
     },
     initialRace() {
       this.raceTimer = setInterval(() => {
-        const { rains } = this;
-        const result = rains.reduce((p, c) => {
-          if (c.top >= this.maxHeight) return p;
-          return [...p, { ...c, top: c.top + c.speed, speed: c.speed + 1 }];
-        }, []);
-        this.rains = result;
+        const rains = this.rains;
+        const bound = window.innerHeight;
+        const kept = [];
+        for (let i = 0; i < rains.length; i++) {
+          const r = rains[i];
+          if (r.top >= bound) continue;
+          // 原地更新，复用对象；单趟 O(n) 替代 reduce + spread 的 O(n²)
+          r.top += r.speed;
+          r.speed += 1;
+          kept.push(r);
+        }
+        this.rains = kept;
       }, RAIN_RACE_TIME);
     },
   },

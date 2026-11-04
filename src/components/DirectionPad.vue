@@ -1,9 +1,9 @@
 <template>
   <div class="dpad">
-    <button class="pad up" @touchstart.prevent="tap('up')">▲</button>
-    <button class="pad left" @touchstart.prevent="tap('left')">◀</button>
-    <button class="pad right" @touchstart.prevent="tap('right')">▶</button>
-    <button class="pad down" @touchstart.prevent="tap('down')">▼</button>
+    <button class="pad up" @pointerdown.prevent="tap('up')">▲</button>
+    <button class="pad left" @pointerdown.prevent="tap('left')">◀</button>
+    <button class="pad right" @pointerdown.prevent="tap('right')">▶</button>
+    <button class="pad down" @pointerdown.prevent="tap('down')">▼</button>
   </div>
 </template>
 
@@ -20,25 +20,31 @@ export default {
 
 <style scoped lang="scss">
 .dpad {
-  --pad: clamp(44px, 14vw, 64px);
-  display: grid;
-  grid-template-columns: repeat(3, var(--pad));
-  grid-template-rows: repeat(2, calc(var(--pad) * 0.9));
-  gap: clamp(4px, 1vw, 8px);
+  display: none;
+  grid-template-columns: repeat(3, 56px);
+  grid-template-rows: repeat(2, 52px);
+  gap: 8px;
   justify-content: center;
   user-select: none;
   touch-action: manipulation;
 }
+
+/* 按指针能力显示（设计稿规则），不按视口宽度 */
+@media (pointer: coarse) {
+  .dpad {
+    display: grid;
+  }
+}
 .pad {
   border: 1px solid var(--ui-line, rgba(148, 163, 184, 0.25));
-  border-radius: clamp(10px, 2.2vw, 16px);
+  border-radius: 14px;
   background: rgba(148, 163, 184, 0.14);
   backdrop-filter: blur(8px);
   -webkit-backdrop-filter: blur(8px);
   color: var(--ui-text, #e2e8f0);
-  font-size: clamp(14px, 3.2vw, 18px);
+  font-size: 18px;
   cursor: pointer;
-  transition: transform 0.08s ease, background 0.15s ease;
+  transition: transform 0.15s ease-out, background 0.15s ease-out;
 }
 .pad:active {
   transform: scale(0.92);
@@ -49,7 +55,4 @@ export default {
 .left { grid-column: 1; grid-row: 2; }
 .right { grid-column: 3; grid-row: 2; }
 .down { grid-column: 2; grid-row: 2; }
-@media (min-width: 1024px) {
-  .dpad { display: none; }
-}
 </style>

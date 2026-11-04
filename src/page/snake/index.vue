@@ -2,56 +2,113 @@
   <div class="snake_bg page-shell">
     <header class="hud">
       <div class="hud_title">贪恰蛇 Gluttonous Snake</div>
-      <span class="chip">得分 {{ score }}</span>
+      <span class="chip" aria-live="polite">得分 {{ score }}</span>
       <div class="hud_spacer"></div>
-      <ConfigSelect title="模式" :options="modeOptions" @apply="sideBarMethod" />
-      <ConfigSelect title="棋盘" :options="boardOptions" @apply="sideBarMethod" />
-      <ConfigSelect title="难度" :options="difficultyOptions" @apply="sideBarMethod" />
+      <div class="hud_config">
+        <ConfigSelect
+          title="模式"
+          :options="modeOptions"
+          initial="经典"
+          @apply="sideBarMethod"
+        />
+        <ConfigSelect
+          title="棋盘"
+          :options="boardOptions"
+          :initial="boardInitial"
+          @apply="sideBarMethod"
+        />
+        <ConfigSelect
+          title="难度"
+          :options="difficultyOptions"
+          initial="普通"
+          @apply="sideBarMethod"
+        />
+      </div>
       <button class="btn" @click="switchEvent({ type: 'restart' })">重新开始</button>
       <button class="btn btn--accent" @click="switchEvent({ type: 'stop' })">
         {{ isStop ? "开始" : "暂停" }}
       </button>
     </header>
-    <main class="stage-panel game_layout">
-      <div class="layout" ref="layout">
-        <ul
-          class="check_ul cl"
-          v-for="(col, cIdx) in formattCheck"
-          :key="cIdx"
-        >
-          <li
-            v-for="(row, rIdx) in col"
-            :key="rIdx"
-            :style="handleLiStyle"
-            :ref="`li_${cIdx}`"
-          ></li>
-        </ul>
-      </div>
-      <transition name="fade">
-        <div class="pause-overlay" v-show="isStop" @click="switchEvent({ type: 'stop' })">
-          <img src="../../assets/img/snake/stop.png" alt />
-          <p class="pause-hint">点击此处 / 空格键 开始</p>
+    <div class="stage">
+      <main class="stage-panel game_layout">
+        <div class="layout" ref="layout" :class="{ bordered: boardBorder }">
+          <ul class="check_ul cl" v-for="r in boardRows" :key="r">
+            <li
+              v-for="c in boardCols"
+              :key="c"
+              :ref="`li_${r - 1}`"
+            ></li>
+          </ul>
         </div>
-      </transition>
-    </main>
+        <transition name="fade">
+          <div
+            class="game-overlay game-overlay--start"
+            v-if="showStart"
+            @click="switchEvent({ type: 'stop' })"
+          >
+            <div class="overlay_circle overlay_circle--play">
+              <span class="overlay_play"></span>
+            </div>
+            <p class="overlay_title">准备开始</p>
+            <p class="overlay_hint">点击开始 / 空格键</p>
+            <p class="overlay_meta">{{ modeLabel }} · {{ boardInitial }}<span class="overlay_diff"> · {{ difficultyLabel }}</span></p>
+            <p class="overlay_sub">
+              {{ currentMode === "freeMode" ? "方向键移动 · 自由模式边缘穿越" : "方向键移动 · 经典模式撞墙结束" }}
+            </p>
+          </div>
+        </transition>
+        <transition name="fade">
+          <div
+            class="game-overlay game-overlay--pause"
+            v-if="showPaused"
+            @click="switchEvent({ type: 'stop' })"
+          >
+            <div class="overlay_circle overlay_circle--pause">
+              <span class="overlay_bar"></span>
+              <span class="overlay_bar"></span>
+            </div>
+            <p class="overlay_title">已暂停</p>
+            <p class="overlay_hint">点击继续 / 空格键</p>
+            <p class="overlay_score">得分 {{ score }}</p>
+          </div>
+        </transition>
+        <transition name="fade">
+          <div class="result-veil" v-if="showResult" @click.self="closeResult">
+            <div class="result-card" role="dialog" aria-label="游戏结束">
+              <p class="result_title">游戏结束</p>
+              <p class="result_score">{{ finalScore }}</p>
+              <p class="result_label">本次得分</p>
+              <p class="result_meta">{{ resultMeta }}</p>
+              <div class="result_actions">
+                <button class="btn btn--accent result_primary" @click="replay">
+                  再来一局
+                </button>
+                <button class="btn result_secondary" @click="closeResult">关闭</button>
+              </div>
+              <p class="result_close_hint">点击空白处关闭</p>
+            </div>
+          </div>
+        </transition>
+      </main>
+      <p class="stage_hint">
+        方向键控制<span class="hint_extra"> · 空格暂停 · {{ checkerArea[0] }} × {{ checkerArea[1] }}</span>
+      </p>
+    </div>
     <div class="dpad_wrap">
       <DirectionPad @dir="setDirection" />
     </div>
   </div>
-</template>
 </template>
 
 <script>
 import { SNAKE } from "@constants";
 import { DEVICE_PHONE, DEVICE_TABLET, deviceClass, onDeviceClassChange } from "../../utils/device.js";
 import { COMMIT } from "../../utils/index.js";
-import { $animate } from "../../mixins/index.js";
 import ConfigSelect from "../../components/ConfigSelect.vue";
 import DirectionPad from "../../components/DirectionPad.vue";
 export default {
   name: "SnakeGame",
   components: { ConfigSelect, DirectionPad },
-  mixins: [$animate],
   data() {
     return {
       checkerArea: [50, 50],
@@ -60,7 +117,6 @@ export default {
       modeOptions: SNAKE.sidebar[0].children,
       boardOptions: SNAKE.sidebar[1].children,
       difficultyOptions: SNAKE.sidebar[2].children,
-      liStyle: {},
       snakeLength: 4,
       boardBorder: false,
       snake: [],
@@ -69,32 +125,44 @@ export default {
       moveTimer: undefined,
       isStop: true,
       wait: true,
-      speed: 200,
+      speed: 80,
       score: 0,
+      hasStarted: false,
+      resultOpen: false,
+      finalScore: 0,
       observer: null,
     };
   },
   computed: {
-    formattCheck() {
-      const [a, b] = this.checkerArea;
-      const res = [];
-      for (let i = 0; i < a; i++) {
-        const arr = [];
-        for (let n = 0; n < b; n++) {
-          arr[n] = n;
-        }
-        res[i] = arr;
-      }
-      return res;
+    showStart() {
+      return !this.resultOpen && !this.hasStarted;
     },
-
-    handleLiStyle() {
-      let { liStyle, boardBorder } = this;
-      const border = "1px solid #aaa";
-      if (boardBorder) {
-        liStyle = { ...liStyle, border };
-      }
-      return liStyle;
+    showPaused() {
+      return !this.resultOpen && this.hasStarted && this.isStop;
+    },
+    showResult() {
+      return this.resultOpen;
+    },
+    boardInitial() {
+      const [r, c] = this.checkerArea;
+      return `${r} × ${c}`;
+    },
+    modeLabel() {
+      return this.currentMode === "freeMode" ? "自由" : "经典";
+    },
+    difficultyLabel() {
+      if (this.speed <= 30) return "疯狂";
+      if (this.speed <= 60) return "困难";
+      return "普通";
+    },
+    resultMeta() {
+      return `${this.modeLabel} · ${this.boardInitial} · ${this.difficultyLabel}`;
+    },
+    boardRows() {
+      return this.checkerArea[0];
+    },
+    boardCols() {
+      return this.checkerArea[1];
     },
   },
   created() {
@@ -110,8 +178,18 @@ export default {
   mounted() {
     this.bindKeycode();
     this.$nextTick(() => {
-      this.observer = new ResizeObserver(() => this.initStyle());
+      // rAF 合并 HUD→棋盘的级联 resize，每帧最多重算一次格距
+      this.observer = new ResizeObserver(() => {
+        if (this.layoutRaf) cancelAnimationFrame(this.layoutRaf);
+        this.layoutRaf = requestAnimationFrame(() => {
+          this.layoutRaf = null;
+          this.initStyle();
+        });
+      });
       this.observer.observe(this.$refs.layout);
+      this.syncHudHeight();
+      this.hudObserver = new ResizeObserver(() => this.syncHudHeight());
+      this.hudObserver.observe(this.$el.querySelector(".hud"));
     });
     // 设备档位变化（旋转/跨档拖窗）：未被手动覆盖时自动切棋盘档位
     this.offDevice = onDeviceClassChange(() => {
@@ -119,8 +197,10 @@ export default {
       const area = this.deviceBoardArea();
       if (area[0] === this.checkerArea[0]) return;
       this.checkerArea = area;
-      this.initStyle();
-      this.restartGame();
+      this.$nextTick(() => {
+        this.initStyle();
+        this.restartGame();
+      });
       this.HiAlert({
         type: "secondary",
         content: `已按屏幕调整为 ${area[0]} x ${area[1]} 棋盘`,
@@ -129,11 +209,22 @@ export default {
     });
   },
   unmounted() {
-    document.onkeydown = null;
+    if (this.onKeydown) {
+      document.removeEventListener("keydown", this.onKeydown);
+      this.onKeydown = null;
+    }
     clearInterval(this.moveTimer);
+    if (this.layoutRaf) {
+      cancelAnimationFrame(this.layoutRaf);
+      this.layoutRaf = null;
+    }
     if (this.observer) {
       this.observer.disconnect();
       this.observer = null;
+    }
+    if (this.hudObserver) {
+      this.hudObserver.disconnect();
+      this.hudObserver = null;
     }
     if (this.offDevice) {
       this.offDevice();
@@ -149,6 +240,16 @@ export default {
       if (cls === DEVICE_PHONE) return [20, 20];
       if (cls === DEVICE_TABLET) return [30, 30];
       return [50, 50];
+    },
+
+    /**
+     * HUD 实际高度写入 CSS 变量，供棋盘尺寸计算
+     */
+    syncHudHeight() {
+      const hud = this.$el.querySelector(".hud");
+      if (hud) {
+        document.documentElement.style.setProperty("--hud-h", `${hud.offsetHeight}px`);
+      }
     },
 
     /**
@@ -172,25 +273,12 @@ export default {
     /**
      * 选择模式
      */
-    chooseMode({ type, mode, label }) {
-      let tip = `已切换为${label}`;
-      let alertType = "success";
-      switch (mode) {
-        case "classicMode":
-          this.currentMode = mode;
-          break;
-        case "freeMode":
-          this.currentMode = mode;
-          break;
-        case "adventureMode":
-          tip = `暂未开放`;
-          alertType = "warning";
-          break;
-      }
+    chooseMode({ mode, label }) {
+      this.currentMode = mode;
       this.restartGame();
       this.HiAlert({
-        type: alertType,
-        content: tip,
+        type: "success",
+        content: `已切换为${label}`,
       });
     },
 
@@ -225,10 +313,15 @@ export default {
      * 选择棋盘size
      */
     chooseBoard({ size, label }) {
-      this.boardByDevice = false;
       switch (size) {
+        case "border":
+          this.boardBorder = !this.boardBorder;
+          return;
         case "twenty":
           this.checkerArea = [20, 20];
+          break;
+        case "thirty":
+          this.checkerArea = [30, 30];
           break;
         case "fifty":
           this.checkerArea = [50, 50];
@@ -239,16 +332,18 @@ export default {
         case "hundred":
           this.checkerArea = [100, 100];
           break;
-        case "border":
-          this.boardBorder = !this.boardBorder;
+        default:
           return;
       }
+      this.boardByDevice = false;
       this.HiAlert({
         type: "success",
         content: `棋盘已设置为${label}`,
       });
-      this.initStyle();
-      this.restartGame();
+      this.$nextTick(() => {
+        this.initStyle();
+        this.restartGame();
+      });
     },
 
     /**
@@ -273,6 +368,7 @@ export default {
      * 暂停游戏
      */
     stopGame() {
+      if (this.resultOpen) return;
       const { isStop } = this;
       if (!isStop) {
         clearInterval(this.moveTimer);
@@ -282,12 +378,12 @@ export default {
           clear: true,
         });
       } else {
-        this.HiImg({ isShow: "hide" });
         this.HiAlert({
           type: "success",
-          content: "游戏已开始！",
+          content: this.hasStarted ? "继续游戏！" : "游戏已开始！",
           clear: true,
         });
+        this.hasStarted = true;
         this.gameStart();
       }
       this.isStop = !isStop;
@@ -299,12 +395,12 @@ export default {
     restartGame() {
       this.score = 0;
       this.isStop = true;
+      this.hasStarted = false;
+      this.resultOpen = false;
       clearInterval(this.moveTimer);
-      const { layout } = this.$refs;
-      const liArr = layout.querySelectorAll("li");
-      for (let i = 0, l = liArr.length; i < l; i++) {
-        const li = liArr[i];
-        li.className = "";
+      // 只清理上一帧有类名的格子（蛇身 + 食物），避免 O(cells) 全量扫 DOM
+      for (const [row, col] of [...this.snake, this.food]) {
+        this.setCell(row, col, "");
       }
       this.createSnake();
       this.drawSnake();
@@ -336,28 +432,42 @@ export default {
     },
 
     /**
-     * 按键改变方向
+     * 按键改变方向（仅游戏页语境：不劫持输入控件与可交互元素）
      */
     bindKeycode() {
-      document.onkeydown = ({ keyCode }) => {
-        switch (keyCode) {
+      this.onKeydown = event => {
+        const { target } = event;
+        if (
+          target &&
+          target.closest &&
+          target.closest("input, textarea, select, button, a, [contenteditable]")
+        ) {
+          return;
+        }
+        switch (event.keyCode) {
           case 37:
+            event.preventDefault();
             this.setDirection("left");
             break;
           case 38:
+            event.preventDefault();
             this.setDirection("up");
             break;
           case 39:
+            event.preventDefault();
             this.setDirection("right");
             break;
           case 40:
+            event.preventDefault();
             this.setDirection("down");
             break;
           case 32:
+            event.preventDefault();
             this.stopGame();
             break;
         }
       };
+      document.addEventListener("keydown", this.onKeydown);
     },
 
     /**
@@ -365,6 +475,7 @@ export default {
      */
     snakeMove() {
       const { direction, snake, currentMode } = this;
+      if (!direction) return;
       let [r, c] = snake[0];
       let headAfter = [];
       switch (direction) {
@@ -381,10 +492,6 @@ export default {
           headAfter = [r, c + 1];
           break;
       }
-      if (this.judgeHeadInSelfBody()) {
-        this.gameOver();
-        return;
-      }
       const res = this[currentMode](headAfter);
       switch (currentMode) {
         case "classicMode":
@@ -397,15 +504,23 @@ export default {
           headAfter = res;
           break;
       }
-      if (this.isAteFood()) {
-        this.createFood();
-      } else {
+      if (this.hitsSelf(headAfter)) {
+        this.gameOver();
+        return;
+      }
+      const ate = this.isAteFood();
+      if (!ate) {
         const [row, col] = snake.pop();
-        const li = this.$refs[`li_${row}`][col];
-        li.className = "";
+        this.setCell(row, col, "");
       }
       snake.unshift(headAfter);
-      this.drawSnake();
+      if (ate) {
+        this.createFood();
+      }
+      // 增量绘制：每 tick 只有新头 + 旧头（降级为身体）两格变化
+      this.setCell(headAfter[0], headAfter[1], "snake_head");
+      const prevHead = snake[1];
+      this.setCell(prevHead[0], prevHead[1], "snake_body");
     },
 
     /**
@@ -444,23 +559,43 @@ export default {
     },
 
     /**
-     * 游戏结束
+     * 游戏结束：保留终局面，弹结果卡
      */
     gameOver() {
       clearInterval(this.moveTimer);
-      this.score = 0;
+      this.finalScore = this.score;
+      this.isStop = true;
+      this.hasStarted = false;
+      this.resultOpen = true;
+    },
+
+    /**
+     * 再来一局：重置棋盘并直接开局
+     */
+    replay() {
       this.restartGame();
+      this.hasStarted = true;
+      this.isStop = false;
+      this.gameStart();
       this.HiAlert({
-        type: "danger",
-        content: "游戏结束！",
+        type: "success",
+        content: "游戏已开始！",
+        clear: true,
       });
-      this.HiImg({ type: "fail" });
+    },
+
+    /**
+     * 关闭结果卡：回到准备开始态
+     */
+    closeResult() {
+      this.restartGame();
     },
 
     /**
      * 判断是否吃到了食物
      */
     isAteFood() {
+      if (!this.food.length) return false;
       const [foodRow, foodCol] = this.food;
       const [headRow, headCol] = this.snake[0];
       if (foodRow == headRow && foodCol == headCol) {
@@ -499,71 +634,80 @@ export default {
     },
 
     /**
-     * 画一条蛇
+     * 写单格类名（refs 直取，越界/换盘竞态时静默跳过）
+     */
+    setCell(row, col, cls) {
+      const rowRef = this.$refs[`li_${row}`];
+      const li = rowRef && rowRef[col];
+      if (li) li.className = cls;
+    },
+
+    /**
+     * 画一条蛇（整幅重绘：开局 / 换盘后使用）
      */
     drawSnake() {
       const { snake } = this;
-      snake.map(([a, b], idx) => {
-        const li = this.$refs[`li_${a}`][b] || undefined;
-        if (!li) {
-          return;
-        }
-        if (idx == 0) {
-          li.className = "snake_head";
-        } else {
-          li.className = "snake_body";
-        }
+      snake.forEach(([a, b], idx) => {
+        this.setCell(a, b, idx == 0 ? "snake_head" : "snake_body");
       });
     },
 
     /**
-     * 创建一个食物
+     * 创建一个食物：稀疏时拒绝采样（期望 O(1)），过半占用改为有界线性扫描
      */
     createFood() {
       const {
         checkerArea: [x, y],
         snake,
       } = this;
-      while (true) {
-        const row = Math.floor(Math.random() * x);
-        const col = Math.floor(Math.random() * y);
-        for (let i = 0; i < snake.length; i++) {
-          const [a, b] = snake[i];
-          if (row != a && col != b) {
-            this.food = [row, col];
-            const food = this.$refs[`li_${row}`][col];
-            food.className = "food";
-            return;
-          }
+      const total = x * y;
+      if (snake.length >= total) {
+        this.food = [];
+        return;
+      }
+      const taken = new Set(snake.map(([a, b]) => `${a},${b}`));
+      let row;
+      let col;
+      if (taken.size < total / 2) {
+        do {
+          row = Math.floor(Math.random() * x);
+          col = Math.floor(Math.random() * y);
+        } while (taken.has(`${row},${col}`));
+      } else {
+        const start = Math.floor(Math.random() * total);
+        for (let i = 0; i < total; i++) {
+          const idx = (start + i) % total;
+          row = Math.floor(idx / y);
+          col = idx % y;
+          if (!taken.has(`${row},${col}`)) break;
         }
       }
+      this.food = [row, col];
+      this.setCell(row, col, "food");
     },
 
     /**
-     * 判断蛇头是否在自己身上
+     * 判断将要到达的位置是否撞到自己（尾巴即将让位，不计入）
      */
-    judgeHeadInSelfBody() {
-      const body = JSON.parse(JSON.stringify(this.snake));
-      const [x, y] = body.shift(1);
-      for (let i = 0; i < body.length; i++) {
-        const [a, b] = body[i];
-        if (a == x && b == y) {
-          return true;
-        }
+    hitsSelf([row, col]) {
+      const body = this.snake;
+      const last = body.length - 1;
+      for (let i = 0; i < last; i++) {
+        if (body[i][0] == row && body[i][1] == col) return true;
       }
+      return false;
     },
 
     /**
-     * 初始化棋盘样式
+     * 初始化棋盘样式：只写 CSS 变量，格子尺寸由样式表读取，不再触发 10k 次响应式 patch
      */
     initStyle() {
       const { layout } = this.$refs;
       if (!layout) return;
-      const { offsetWidth, offsetHeight } = layout,
-        [a, b] = this.checkerArea,
-        w = parseInt(offsetWidth / b) + "px",
-        h = parseInt(offsetHeight / a) + "px";
-      this.liStyle = { width: w, height: h };
+      const { offsetWidth, offsetHeight } = layout;
+      const [a, b] = this.checkerArea;
+      layout.style.setProperty("--cell-w", `${offsetWidth / b}px`);
+      layout.style.setProperty("--cell-h", `${offsetHeight / a}px`);
     },
   },
 };

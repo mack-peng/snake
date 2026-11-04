@@ -9,34 +9,37 @@ const store = new Vuex.Store({
   state: {
     alertQueue: [],
     alertId: 0,
-    alertClearTimer: null,
+    alertTimers: {},
     cartoon: {},
   },
   mutations: {
     /**
-     * 新增alert队列
+     * 新增alert队列（最多同时 3 条，3s 自动消失；定时器登记可取消）
      */
     handleAlert(state, data) {
       state.alertId += 1;
+      const { alertId } = state;
       if (data.clear) {
-        clearTimeout(state.alertClearTimer);
+        for (const id of Object.keys(state.alertTimers)) {
+          clearTimeout(state.alertTimers[id]);
+        }
+        state.alertTimers = {};
         state.alertQueue = [];
-        state.alertQueue.push({
-          ...data,
-          alertId: state.alertId,
-        });
-        state.alertClearTimer = setTimeout(() => {
-          state.alertQueue.shift(1);
-        }, 2000);
-      } else {
-        state.alertQueue.push({
-          ...data,
-          alertId: state.alertId,
-        });
-        setTimeout(() => {
-          state.alertQueue.shift(1);
-        }, 2000);
       }
+      state.alertQueue.push({
+        ...data,
+        alertId,
+      });
+      while (state.alertQueue.length > 3) {
+        const removed = state.alertQueue.shift();
+        clearTimeout(state.alertTimers[removed.alertId]);
+        delete state.alertTimers[removed.alertId];
+      }
+      state.alertTimers[alertId] = setTimeout(() => {
+        const idx = state.alertQueue.findIndex(a => a.alertId === alertId);
+        if (idx !== -1) state.alertQueue.splice(idx, 1);
+        delete state.alertTimers[alertId];
+      }, 3000);
     },
 
     /**

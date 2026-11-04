@@ -2,45 +2,274 @@
   /* 背景由 Rain 组件与 page-shell 压暗层提供 */
 }
 
+.stage {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  width: min(700px, calc(100vw - 28px), calc(100dvh - var(--hud-h, 64px) - var(--board-reserve, 76px)));
+  margin: clamp(10px, 2.4vw, 24px) auto;
+}
+
+/* 触屏横屏：右侧留给 D-pad */
+@media (pointer: coarse) and (orientation: landscape) {
+  .stage {
+    width: min(700px, calc(100vw - 200px), calc(100dvh - var(--hud-h, 64px) - var(--board-reserve, 76px)));
+    margin-left: 16px;
+    margin-right: auto;
+  }
+}
+
+.stage_hint {
+  margin: 8px 0 0;
+  color: var(--ui-dim);
+  font-size: 11px;
+  text-align: center;
+}
+
+@media (max-width: 1023.98px) {
+  .hint_extra {
+    display: none;
+  }
+}
+
 .game_layout {
-  /* 宽高双约束：不超容器宽，也不超视口高（HUD + 边距预留 200px） */
-  width: min(700px, calc(100vw - 28px), calc(100dvh - 200px));
-  aspect-ratio: 1 / 1;
   position: relative;
-  background: rgba(15, 23, 42, 0.45);
+  background: var(--ui-board);
   border: 1px solid var(--ui-line);
+  width: 100%;
+  aspect-ratio: 1 / 1;
+  container-type: size;
 }
 
 .layout {
   width: 100%;
   height: 100%;
+  /* 网格线按格距绘制（--cell-w/--cell-h 由 initStyle 写入） */
+  background-image:
+    repeating-linear-gradient(to right, var(--ui-grid) 0 1px, transparent 1px var(--cell-w, 14px)),
+    repeating-linear-gradient(to bottom, var(--ui-grid) 0 1px, transparent 1px var(--cell-h, 14px));
 }
 
-.pause-overlay {
+/* ---------- 状态层：start / paused ---------- */
+.game-overlay {
   position: absolute;
   inset: 0;
   display: flex;
   flex-direction: column;
-  gap: 14px;
+  align-items: center;
+  justify-content: center;
+  text-align: center;
+  cursor: pointer;
+  z-index: 2;
+  border-radius: 15px;
+  backdrop-filter: blur(8px);
+  -webkit-backdrop-filter: blur(8px);
+}
+
+.game-overlay--start {
+  background: rgba(8, 12, 24, 0.6);
+}
+
+.game-overlay--pause {
+  background: rgba(8, 12, 24, 0.65);
+}
+
+.overlay_circle {
+  width: 72px;
+  height: 72px;
+  border-radius: 50%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 7px;
+}
+
+.overlay_circle--play {
+  background: var(--accent);
+}
+
+.overlay_play {
+  width: 0;
+  height: 0;
+  margin-left: 6px;
+  border-left: 22px solid #0b1220;
+  border-top: 13px solid transparent;
+  border-bottom: 13px solid transparent;
+}
+
+.overlay_circle--pause {
+  background: rgba(148, 163, 184, 0.14);
+  border: 1px solid var(--ui-line);
+}
+
+.overlay_bar {
+  width: 9px;
+  height: 28px;
+  border-radius: 3px;
+  background: var(--ui-text);
+}
+
+.overlay_title {
+  margin: 28px 0 0;
+  font-size: 24px;
+  color: var(--ui-text);
+}
+
+.overlay_hint {
+  margin: 12px 0 0;
+  font-size: 14px;
+  color: var(--ui-text);
+  opacity: 0.9;
+}
+
+.overlay_meta {
+  margin: 15px 0 0;
+  font-size: 12px;
+  color: var(--ui-dim);
+}
+
+.overlay_sub {
+  margin: 11px 0 0;
+  font-size: 11px;
+  color: var(--ui-dim);
+}
+
+.overlay_score {
+  margin: 14px 0 0;
+  font-size: 13px;
+  color: var(--ui-dim);
+}
+
+@media (max-width: 767.98px) {
+  .overlay_circle {
+    width: 56px;
+    height: 56px;
+  }
+  .overlay_play {
+    border-left-width: 16px;
+    border-top-width: 10px;
+    border-bottom-width: 10px;
+  }
+  .overlay_bar {
+    width: 7px;
+    height: 22px;
+  }
+  .overlay_title {
+    margin-top: 20px;
+    font-size: 18px;
+  }
+  .overlay_hint {
+    margin-top: 10px;
+    font-size: 13px;
+  }
+  .overlay_meta {
+    margin-top: 12px;
+    font-size: 11px;
+  }
+  .overlay_sub,
+  .overlay_diff {
+    display: none;
+  }
+}
+
+/* ---------- 状态层：result ---------- */
+.result-veil {
+  position: absolute;
+  inset: 0;
+  z-index: 3;
+  display: flex;
   align-items: center;
   justify-content: center;
   background: rgba(8, 12, 24, 0.55);
-  backdrop-filter: blur(6px);
-  -webkit-backdrop-filter: blur(6px);
-  cursor: pointer;
-  z-index: 2;
+  backdrop-filter: blur(4px);
+  -webkit-backdrop-filter: blur(4px);
+  border-radius: 15px;
 }
 
-.pause-overlay img {
-  width: clamp(64px, 12vw, 96px);
-  border: 0;
+.result-card {
+  width: min(420px, calc(100% - 32px));
+  padding-top: 47px;
+  padding-bottom: 47px;
+  background: rgba(15, 23, 42, 0.96);
+  border: 1px solid var(--ui-line);
+  border-radius: 20px;
+  box-shadow: 0 24px 30px rgba(0, 0, 0, 0.45);
+  text-align: center;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
 }
 
-.pause-hint {
-  color: var(--ui-text);
-  opacity: 0.85;
-  font-size: clamp(12px, 1.4vw, 14px);
+.result_title {
   margin: 0;
+  font-size: 22px;
+  color: var(--ui-text);
+}
+
+.result_score {
+  margin: 8px 0 0;
+  font-family: "Patrick Hand SC", cursive;
+  font-size: 44px;
+  line-height: 1;
+  color: var(--accent);
+}
+
+.result_label {
+  margin: 12px 0 0;
+  font-size: 12px;
+  color: var(--ui-dim);
+}
+
+.result_meta {
+  margin: 9px 0 0;
+  font-size: 11px;
+  color: var(--ui-dim);
+}
+
+.result_actions {
+  margin-top: 24px;
+  display: flex;
+  gap: 12px;
+  width: min(252px, calc(100% - 32px));
+}
+
+.result_primary {
+  flex: 140 1 0;
+  min-width: 0;
+  height: 44px;
+}
+
+.result_secondary {
+  flex: 100 1 0;
+  min-width: 0;
+  height: 44px;
+}
+
+.result_close_hint {
+  display: none;
+  margin: 15px 0 0;
+  font-size: 10px;
+  color: var(--ui-dim);
+}
+
+@media (max-width: 767.98px) {
+  .result-card {
+    padding-top: 34px;
+    padding-bottom: 30px;
+  }
+  .result_title {
+    font-size: 18px;
+  }
+  .result_score {
+    font-size: 36px;
+  }
+  .result_primary,
+  .result_secondary {
+    height: 40px;
+  }
+  .result_close_hint {
+    display: block;
+  }
 }
 
 .check_ul {
@@ -50,6 +279,13 @@
 
 .check_ul li {
   float: left;
+  width: var(--cell-w, 14px);
+  height: var(--cell-h, 14px);
+}
+
+/* 边框开关只切 .layout 上一个类，不触发 10k 节点的响应式更新 */
+.layout.bordered .check_ul li {
+  border: 1px solid #aaa;
 }
 
 .check_ul li::before {
@@ -57,17 +293,17 @@
 }
 
 .snake_head {
-  background: #4ade80;
-  border-radius: 2px;
+  background: var(--accent);
+  border-radius: min(4px, 25%);
 }
 
 .snake_body {
-  background: #22c55e;
-  border-radius: 2px;
+  background: #22c55f;
+  border-radius: min(4px, 25%);
 }
 
 .food {
-  background: #f87171;
+  background: var(--food);
   border-radius: 50%;
 }
 
@@ -76,13 +312,15 @@
   margin: 14px auto 0;
 }
 
-/* 移动端方向键固定底部，避免折叠线以下需要滚动 */
-@media (max-width: 1023.98px) {
+/* 触屏指针：竖屏底部居中，横屏右侧；含安全区 */
+@media (pointer: coarse) {
   .dpad_wrap {
     position: fixed;
     left: 0;
     right: 0;
-    bottom: 10px;
+    bottom: calc(24px + env(safe-area-inset-bottom, 0px));
+    display: flex;
+    justify-content: center;
     z-index: 10;
     pointer-events: none;
   }
@@ -92,34 +330,48 @@
   }
 }
 
-/* 移动端 HUD：标题行 + 三等分下拉行 + 等宽按钮行（对齐设计稿） */
-@media (max-width: 767.98px) {
-  .hud_title {
-    width: auto;
-    flex: 1 1 auto;
-    font-size: 18px;
+@media (pointer: coarse) and (orientation: landscape) {
+  .dpad_wrap {
+    left: auto;
+    right: 12px;
+    top: 50%;
+    bottom: auto;
+    transform: translateY(-50%);
+    justify-content: flex-end;
   }
+}
 
-  .hud_spacer {
-    flex: 1 1 0;
+/* 小棋盘（320 / 横屏低高度）：结果卡紧凑排版，保证完整可见 */
+@container (max-height: 340px) {
+  .result-card {
+    width: calc(100% - 16px);
+    padding-top: 16px;
+    padding-bottom: 14px;
   }
-
-  .hud .config-select {
-    flex: 1 1 calc(33.333% - 8px);
-    min-width: 0;
+  .result_title {
+    font-size: 16px;
   }
-
-  .hud .config-select_title {
-    display: none;
+  .result_score {
+    margin-top: 4px;
+    font-size: 28px;
   }
-
-  .hud .config-select .select {
-    width: 100%;
-    padding: 0 8px;
-    font-size: 14px;
+  .result_label {
+    margin-top: 6px;
+    font-size: 11px;
   }
-
-  .hud .btn {
-    flex: 1 1 calc(50% - 4px);
+  .result_meta {
+    margin-top: 5px;
+    font-size: 10px;
+  }
+  .result_actions {
+    margin-top: 12px;
+  }
+  .result_primary,
+  .result_secondary {
+    height: 36px;
+  }
+  .result_close_hint {
+    margin-top: 8px;
+    display: block;
   }
 }

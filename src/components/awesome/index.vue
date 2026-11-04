@@ -19,7 +19,7 @@ export default {
       const { type } = this.cartoon;
       if (!type) return;
       const pool = Object.keys(imgs).filter(k =>
-        k.endsWith(`/${type}_`)
+        k.includes(`/${type}_`)
       );
       const picked = pool[Math.floor(Math.random() * pool.length)];
       return imgs[picked];

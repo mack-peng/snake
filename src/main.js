@@ -4,7 +4,6 @@ import store from "./store";
 
 import "@style/alan.css";
 import "@style/paper.css";
-import "wowjs/css/libs/animate.css";
 import "@style/modern.scss";
 
 import FUNCTION from "./utils/test.js";
