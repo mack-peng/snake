@@ -21,18 +21,37 @@ export default {
   },
   computed: {
     ...mapState(["alertQueue"]),
+    alertCount() {
+      return this.alertQueue.length;
+    },
+  },
+  watch: {
+    alertCount() {
+      this.$nextTick(this.syncTop);
+    },
   },
   mounted() {
     this.syncTop();
     window.addEventListener("resize", this.syncTop);
+    window.addEventListener("orientationchange", this.syncTop);
+    window.addEventListener("xhs-window-info", this.syncTop);
   },
   beforeUnmount() {
     window.removeEventListener("resize", this.syncTop);
+    window.removeEventListener("orientationchange", this.syncTop);
+    window.removeEventListener("xhs-window-info", this.syncTop);
   },
   methods: {
     syncTop() {
       const hud = document.querySelector(".hud");
-      this.top = (hud ? hud.offsetHeight : 56) + 12;
+      const title = document.querySelector(".hud_title");
+      const alertHeight = this.$el ? this.$el.offsetHeight : 0;
+      const titleTop = title ? title.getBoundingClientRect().top : 0;
+      if (titleTop > alertHeight + 16) {
+        this.top = Math.max(8, Math.round(titleTop - alertHeight - 8));
+      } else {
+        this.top = (hud ? hud.offsetHeight : 56) + 12;
+      }
     },
   },
 };
@@ -47,12 +66,20 @@ export default {
   display: flex;
   flex-direction: column;
   align-items: center;
-  gap: 8px;
   pointer-events: none;
+}
+.alert_style + .alert_style {
+  margin-top: 8px;
+}
+.supports-flex-gap .alert_box {
+  gap: 8px;
+}
+.supports-flex-gap .alert_style + .alert_style {
+  margin-top: 0;
 }
 .alert_style {
   width: 360px;
-  max-width: 92vw;
+  max-width: 78vw;
   pointer-events: auto;
 }
 .alert {

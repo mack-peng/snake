@@ -12,26 +12,42 @@
   --ui-grid: #475672;
   --accent: #4ade80;
   --food: #f87171;
-  --space-hud-y: clamp(8px, 1.2vw, 12px);
-  --space-hud-x: clamp(12px, 2.2vw, 28px);
-  --gap-hud: clamp(6px, 1vw, 12px);
-  --font-title: clamp(16px, 1.55vw, 22px);
-  --font-ui: clamp(12px, 1.1vw, 15px);
-  --font-chip: clamp(12px, 1vw, 14px);
+  --space-hud-y: 10px;
+  --space-hud-x: 16px;
+  --gap-hud: 8px;
+  --font-title: 18px;
+  --font-ui: 14px;
+  --font-chip: 13px;
   --ctl-h: 38px;
   --board-reserve: 76px;
   --hud-h: 64px;
+}
+
+@supports (width: clamp(1px, 2px, 3px)) {
+  :root {
+    --space-hud-y: clamp(8px, 1.2vw, 12px);
+    --space-hud-x: clamp(12px, 2.2vw, 28px);
+    --gap-hud: clamp(6px, 1vw, 12px);
+    --font-title: clamp(16px, 1.55vw, 22px);
+    --font-ui: clamp(12px, 1.1vw, 15px);
+    --font-chip: clamp(12px, 1vw, 14px);
+  }
 }
 
 /* 触屏 / 小屏控件高度（设计稿：Desktop 38 · Touch 44 · 320 compact 40） */
 @media (pointer: coarse) {
   :root {
     --ctl-h: 44px;
+  }
+}
+
+@media (max-width: 1023.98px) {
+  :root {
     --board-reserve: 176px;
   }
 }
 
-@media (pointer: coarse) and (orientation: landscape) {
+@media (max-width: 1023.98px) and (orientation: landscape) {
   :root {
     --board-reserve: 60px;
   }
@@ -55,7 +71,10 @@
 .page-shell::before {
   content: "";
   position: fixed;
-  inset: 0;
+  top: 0;
+  right: 0;
+  bottom: 0;
+  left: 0;
   background: rgba(8, 12, 24, 0.6);
   z-index: 0;
   pointer-events: none;
@@ -70,8 +89,8 @@
   display: flex;
   align-items: center;
   flex-wrap: wrap;
-  gap: var(--gap-hud);
   padding: var(--space-hud-y) var(--space-hud-x);
+  padding-top: calc(var(--space-hud-y) + var(--container-top-inset, var(--safe-area-inset-top, 0px)));
   background: var(--ui-panel);
   backdrop-filter: blur(12px);
   -webkit-backdrop-filter: blur(12px);
@@ -79,15 +98,42 @@
   color: var(--ui-text);
 }
 
+@supports (padding-top: env(safe-area-inset-top)) {
+  .hud {
+    padding-top: calc(var(--space-hud-y) + var(--container-top-inset, var(--safe-area-inset-top, env(safe-area-inset-top, 0px))));
+  }
+}
+
+.hud > * + * {
+  margin-left: var(--gap-hud);
+}
+
+.supports-flex-gap .hud {
+  gap: var(--gap-hud);
+}
+
+.supports-flex-gap .hud > * + * {
+  margin-left: 0;
+}
+
 .hud_title {
   font-family: "Patrick Hand SC", cursive;
   font-size: var(--font-title);
   letter-spacing: 1px;
-  margin-right: clamp(0px, 0.4vw, 6px);
+  margin-right: 0;
 }
 
 .hud_spacer {
-  flex: 1 1 clamp(8px, 2vw, 24px);
+  flex: 1 1 8px;
+}
+
+@supports (width: clamp(1px, 2px, 3px)) {
+  .hud_title {
+    margin-right: clamp(0px, 0.4vw, 6px);
+  }
+  .hud_spacer {
+    flex: 1 1 clamp(8px, 2vw, 24px);
+  }
 }
 
 .chip {
@@ -109,6 +155,7 @@
   display: inline-flex;
   align-items: center;
   justify-content: center;
+  margin: 0;
   height: var(--ctl-h);
   padding: 0 16px;
   border-radius: 12px;
@@ -128,6 +175,11 @@
 
 .btn:active {
   transform: scale(0.96);
+}
+
+.btn:disabled {
+  opacity: 0.6;
+  cursor: default;
 }
 
 .btn--accent,
@@ -167,6 +219,9 @@
 }
 
 /* 焦点可见环（设计稿 a11y：2px accent） */
+.btn:focus,
+.select:focus,
+.pad:focus,
 .btn:focus-visible,
 .select:focus-visible,
 .pad:focus-visible {
@@ -192,13 +247,42 @@
 
 /* HUD 结构：桌面 1 行（config 组直通） */
 .hud_config {
-  display: contents;
+  display: flex;
+  align-items: center;
+}
+
+.hud_config > * + * {
+  margin-left: var(--gap-hud);
+}
+
+@supports (display: contents) {
+  .hud_config {
+    display: contents;
+  }
+}
+
+.supports-flex-gap .hud_config {
+  gap: var(--gap-hud);
+}
+
+.supports-flex-gap .hud_config > * + * {
+  margin-left: 0;
+}
+
+.is-playing .hud_config {
+  display: none;
 }
 
 /* 平板 768–1023：2 行 — 行1 标题 + 计分 + 按钮，行2 三等分下拉 */
 @media (min-width: 768px) and (max-width: 1023.98px) {
   .hud {
     row-gap: 8px;
+  }
+  .hud > * {
+    margin-bottom: 8px;
+  }
+  .supports-flex-gap .hud > * {
+    margin-bottom: 0;
   }
   .hud .btn {
     order: 1;
@@ -225,6 +309,12 @@
 @media (max-width: 767.98px) {
   .hud {
     row-gap: 8px;
+  }
+  .hud > * {
+    margin-bottom: 8px;
+  }
+  .supports-flex-gap .hud > * {
+    margin-bottom: 0;
   }
   .hud_title {
     width: auto;

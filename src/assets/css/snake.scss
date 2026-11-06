@@ -6,16 +6,29 @@
   display: flex;
   flex-direction: column;
   align-items: center;
-  width: min(700px, calc(100vw - 28px), calc(100dvh - var(--hud-h, 64px) - var(--board-reserve, 76px)));
-  margin: clamp(10px, 2.4vw, 24px) auto;
+  width: var(--stage-size, calc(100vw - 28px));
+  max-width: 700px;
+  margin: 12px auto;
 }
 
-/* 触屏横屏：右侧留给 D-pad */
-@media (pointer: coarse) and (orientation: landscape) {
+/* 小屏横屏：右侧留给 D-pad */
+@media (max-width: 1023.98px) and (orientation: landscape) {
   .stage {
-    width: min(700px, calc(100vw - 200px), calc(100dvh - var(--hud-h, 64px) - var(--board-reserve, 76px)));
+    width: var(--stage-size, calc(100vw - 200px));
     margin-left: 16px;
     margin-right: auto;
+  }
+}
+
+@supports (width: clamp(1px, 2px, 3px)) {
+  .stage {
+    margin: clamp(10px, 2.4vw, 24px) auto;
+  }
+  @media (max-width: 1023.98px) and (orientation: landscape) {
+    .stage {
+      margin-left: 16px;
+      margin-right: auto;
+    }
   }
 }
 
@@ -37,23 +50,34 @@
   background: var(--ui-board);
   border: 1px solid var(--ui-line);
   width: 100%;
-  aspect-ratio: 1 / 1;
-  container-type: size;
+}
+
+/* Chrome 61 无 aspect-ratio：用百分比 padding 撑出正方形 */
+.game_layout::before {
+  content: "";
+  display: block;
+  padding-top: 100%;
 }
 
 .layout {
-  width: 100%;
-  height: 100%;
+  position: absolute;
+  top: 0;
+  right: 0;
+  bottom: 0;
+  left: 0;
   /* 网格线按格距绘制（--cell-w/--cell-h 由 initStyle 写入） */
   background-image:
-    repeating-linear-gradient(to right, var(--ui-grid) 0 1px, transparent 1px var(--cell-w, 14px)),
-    repeating-linear-gradient(to bottom, var(--ui-grid) 0 1px, transparent 1px var(--cell-h, 14px));
+    repeating-linear-gradient(to right, var(--ui-grid) 0, var(--ui-grid) 1px, transparent 1px, transparent var(--cell-w, 14px)),
+    repeating-linear-gradient(to bottom, var(--ui-grid) 0, var(--ui-grid) 1px, transparent 1px, transparent var(--cell-h, 14px));
 }
 
 /* ---------- 状态层：start / paused ---------- */
 .game-overlay {
   position: absolute;
-  inset: 0;
+  top: 0;
+  right: 0;
+  bottom: 0;
+  left: 0;
   display: flex;
   flex-direction: column;
   align-items: center;
@@ -81,7 +105,18 @@
   display: flex;
   align-items: center;
   justify-content: center;
+}
+
+.overlay_circle .overlay_bar + .overlay_bar {
+  margin-left: 7px;
+}
+
+.supports-flex-gap .overlay_circle {
   gap: 7px;
+}
+
+.supports-flex-gap .overlay_circle .overlay_bar + .overlay_bar {
+  margin-left: 0;
 }
 
 .overlay_circle--play {
@@ -175,7 +210,10 @@
 /* ---------- 状态层：result ---------- */
 .result-veil {
   position: absolute;
-  inset: 0;
+  top: 0;
+  right: 0;
+  bottom: 0;
+  left: 0;
   z-index: 3;
   display: flex;
   align-items: center;
@@ -187,7 +225,8 @@
 }
 
 .result-card {
-  width: min(420px, calc(100% - 32px));
+  width: calc(100% - 32px);
+  max-width: 420px;
   padding-top: 47px;
   padding-bottom: 47px;
   background: rgba(15, 23, 42, 0.96);
@@ -229,27 +268,45 @@
 .result_actions {
   margin-top: 24px;
   display: flex;
-  gap: 12px;
-  width: min(252px, calc(100% - 32px));
+  width: calc(100% - 24px);
+  max-width: 340px;
 }
 
-.result_primary {
-  flex: 140 1 0;
+.result_actions .btn {
+  padding: 0 8px;
+  font-size: 13px;
+}
+
+.result_actions .result_primary,
+.result_actions .result_secondary {
+  margin-left: 10px;
+}
+
+.supports-flex-gap .result_actions {
+  gap: 10px;
+}
+
+.supports-flex-gap .result_actions .result_primary,
+.supports-flex-gap .result_actions .result_secondary {
+  margin-left: 0;
+}
+
+.result_share {
+  flex: 120 1 0;
   min-width: 0;
   height: 44px;
 }
 
-.result_secondary {
+.result_primary {
   flex: 100 1 0;
   min-width: 0;
   height: 44px;
 }
 
-.result_close_hint {
-  display: none;
-  margin: 15px 0 0;
-  font-size: 10px;
-  color: var(--ui-dim);
+.result_secondary {
+  flex: 80 1 0;
+  min-width: 0;
+  height: 44px;
 }
 
 @media (max-width: 767.98px) {
@@ -263,12 +320,10 @@
   .result_score {
     font-size: 36px;
   }
+  .result_share,
   .result_primary,
   .result_secondary {
     height: 40px;
-  }
-  .result_close_hint {
-    display: block;
   }
 }
 
@@ -293,13 +348,70 @@
 }
 
 .snake_head {
+  position: relative;
   background: var(--accent);
-  border-radius: min(4px, 25%);
+  border-radius: 4px;
+}
+
+.snake_head::before,
+.snake_head::after {
+  content: "";
+  position: absolute;
+  width: 20%;
+  height: 20%;
+  min-width: 1.5px;
+  min-height: 1.5px;
+  border-radius: 50%;
+  background: #0b1220;
+}
+
+.snake_head::before {
+  top: 24%;
+  left: 24%;
+}
+
+.snake_head::after {
+  top: 24%;
+  left: 56%;
+}
+
+.snake_head--down::before {
+  top: auto;
+  bottom: 24%;
+  left: 24%;
+}
+
+.snake_head--down::after {
+  top: auto;
+  bottom: 24%;
+  left: 56%;
+}
+
+.snake_head--left::before {
+  top: 24%;
+  left: 24%;
+}
+
+.snake_head--left::after {
+  top: 56%;
+  left: 24%;
+}
+
+.snake_head--right::before {
+  top: 24%;
+  right: 24%;
+  left: auto;
+}
+
+.snake_head--right::after {
+  top: 56%;
+  right: 24%;
+  left: auto;
 }
 
 .snake_body {
   background: #22c55f;
-  border-radius: min(4px, 25%);
+  border-radius: 4px;
 }
 
 .food {
@@ -312,13 +424,14 @@
   margin: 14px auto 0;
 }
 
-/* 触屏指针：竖屏底部居中，横屏右侧；含安全区 */
-@media (pointer: coarse) {
+/* 小屏 / 触屏：竖屏底部居中，横屏右侧；含容器安全区 */
+@media (max-width: 1023.98px) {
   .dpad_wrap {
     position: fixed;
     left: 0;
     right: 0;
-    bottom: calc(24px + env(safe-area-inset-bottom, 0px));
+    bottom: 24px;
+    bottom: calc(24px + var(--container-bottom-inset, var(--safe-area-inset-bottom, 0px)));
     display: flex;
     justify-content: center;
     z-index: 10;
@@ -330,7 +443,15 @@
   }
 }
 
-@media (pointer: coarse) and (orientation: landscape) {
+@supports (padding-top: env(safe-area-inset-bottom)) {
+  @media (max-width: 1023.98px) {
+    .dpad_wrap {
+      bottom: calc(24px + var(--container-bottom-inset, var(--safe-area-inset-bottom, env(safe-area-inset-bottom, 0px))));
+    }
+  }
+}
+
+@media (max-width: 1023.98px) and (orientation: landscape) {
   .dpad_wrap {
     left: auto;
     right: 12px;
@@ -341,37 +462,89 @@
   }
 }
 
-/* 小棋盘（320 / 横屏低高度）：结果卡紧凑排版，保证完整可见 */
-@container (max-height: 340px) {
-  .result-card {
-    width: calc(100% - 16px);
-    padding-top: 16px;
-    padding-bottom: 14px;
+@media (min-width: 1024px) {
+  .dpad_wrap {
+    display: none;
   }
-  .result_title {
-    font-size: 16px;
-  }
-  .result_score {
-    margin-top: 4px;
-    font-size: 28px;
-  }
-  .result_label {
-    margin-top: 6px;
-    font-size: 11px;
-  }
-  .result_meta {
-    margin-top: 5px;
-    font-size: 10px;
-  }
-  .result_actions {
-    margin-top: 12px;
-  }
-  .result_primary,
-  .result_secondary {
-    height: 36px;
-  }
-  .result_close_hint {
-    margin-top: 8px;
-    display: block;
-  }
+}
+
+/* 小棋盘（320 / 横屏低高度）：结果卡与开始遮罩紧凑排版，保证完整可见 */
+.board-compact .stage {
+  z-index: 11;
+}
+.board-compact .result-veil {
+  position: fixed;
+  top: 0;
+  right: 0;
+  bottom: 0;
+  left: 0;
+  z-index: 25;
+  border-radius: 0;
+}
+.board-compact .result-card {
+  width: calc(100% - 12px);
+  padding-top: 8px;
+  padding-bottom: 8px;
+}
+.board-compact .result_title {
+  font-size: 13px;
+}
+.board-compact .result_score {
+  margin-top: 2px;
+  font-size: 24px;
+}
+.board-compact .result_label,
+.board-compact .result_meta {
+  display: none;
+}
+.board-compact .result_actions {
+  margin-top: 6px;
+  flex-direction: column;
+  width: 100%;
+  max-width: none;
+}
+.board-compact .result_actions .btn {
+  width: 100%;
+  height: 28px;
+  padding: 0 8px;
+  font-size: 12px;
+}
+.board-compact .result_share,
+.board-compact .result_primary,
+.board-compact .result_secondary {
+  flex: none;
+}
+.board-compact .result_primary,
+.board-compact .result_secondary {
+  margin-left: 0;
+  margin-top: 4px;
+}
+
+.board-compact .overlay_circle {
+  width: 44px;
+  height: 44px;
+}
+.board-compact .overlay_play {
+  margin-left: 4px;
+  border-left-width: 14px;
+  border-top-width: 9px;
+  border-bottom-width: 9px;
+}
+.board-compact .overlay_bar {
+  width: 7px;
+  height: 20px;
+}
+.board-compact .overlay_title {
+  margin-top: 12px;
+  font-size: 15px;
+}
+.board-compact .overlay_hint {
+  margin-top: 6px;
+  font-size: 11px;
+}
+.board-compact .overlay_meta,
+.board-compact .overlay_sub,
+.board-compact .overlay_score,
+.board-compact .overlay_diff {
+  display: none;
 }

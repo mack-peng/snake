@@ -1,5 +1,5 @@
 <template>
-  <div class="snake_bg page-shell">
+  <div class="snake_bg page-shell" :class="{ 'is-playing': isPlaying }">
     <header class="hud">
       <div class="hud_title">贪恰蛇 Gluttonous Snake</div>
       <span class="chip" aria-live="polite">得分 {{ score }}</span>
@@ -80,12 +80,18 @@
               <p class="result_label">本次得分</p>
               <p class="result_meta">{{ resultMeta }}</p>
               <div class="result_actions">
-                <button class="btn btn--accent result_primary" @click="replay">
+                <button
+                  class="btn btn--accent result_share"
+                  :disabled="sharing"
+                  @click="shareResult"
+                >
+                  {{ sharing ? "分享中" : "分享战绩" }}
+                </button>
+                <button class="btn result_primary" @click="replay">
                   再来一局
                 </button>
                 <button class="btn result_secondary" @click="closeResult">关闭</button>
               </div>
-              <p class="result_close_hint">点击空白处关闭</p>
             </div>
           </div>
         </transition>
@@ -125,11 +131,13 @@ export default {
       moveTimer: undefined,
       isStop: true,
       wait: true,
-      speed: 80,
+      speed: 130,
+      difficulty: "普通",
       score: 0,
       hasStarted: false,
       resultOpen: false,
       finalScore: 0,
+      sharing: false,
       observer: null,
     };
   },
@@ -151,9 +159,7 @@ export default {
       return this.currentMode === "freeMode" ? "自由" : "经典";
     },
     difficultyLabel() {
-      if (this.speed <= 30) return "疯狂";
-      if (this.speed <= 60) return "困难";
-      return "普通";
+      return this.difficulty;
     },
     resultMeta() {
       return `${this.modeLabel} · ${this.boardInitial} · ${this.difficultyLabel}`;
@@ -163,6 +169,17 @@ export default {
     },
     boardCols() {
       return this.checkerArea[1];
+    },
+    isPlaying() {
+      return this.hasStarted && !this.isStop && !this.resultOpen;
+    },
+  },
+  watch: {
+    isPlaying() {
+      this.$nextTick(() => {
+        this.syncHudHeight();
+        this.initStyle();
+      });
     },
   },
   created() {
@@ -177,19 +194,28 @@ export default {
   },
   mounted() {
     this.bindKeycode();
+    this.onSyncLayout = () => this.syncHudHeight();
+    window.addEventListener("resize", this.onSyncLayout);
+    window.addEventListener("orientationchange", this.onSyncLayout);
+    window.addEventListener("xhs-window-info", this.onSyncLayout);
     this.$nextTick(() => {
-      // rAF 合并 HUD→棋盘的级联 resize，每帧最多重算一次格距
-      this.observer = new ResizeObserver(() => {
-        if (this.layoutRaf) cancelAnimationFrame(this.layoutRaf);
-        this.layoutRaf = requestAnimationFrame(() => {
-          this.layoutRaf = null;
-          this.initStyle();
-        });
-      });
-      this.observer.observe(this.$refs.layout);
       this.syncHudHeight();
-      this.hudObserver = new ResizeObserver(() => this.syncHudHeight());
-      this.hudObserver.observe(this.$el.querySelector(".hud"));
+      if (typeof ResizeObserver === "function") {
+        // rAF 合并 HUD→棋盘的级联 resize，每帧最多重算一次格距
+        this.observer = new ResizeObserver(() => {
+          this.scheduleLayoutUpdate();
+        });
+        this.observer.observe(this.$refs.layout);
+        this.hudObserver = new ResizeObserver(() => this.syncHudHeight());
+        this.hudObserver.observe(this.$el.querySelector(".hud"));
+      } else {
+        this.onWindowResize = () => {
+          this.scheduleLayoutUpdate();
+          this.syncHudHeight();
+        };
+        window.addEventListener("resize", this.onWindowResize);
+        window.addEventListener("orientationchange", this.onWindowResize);
+      }
     });
     // 设备档位变化（旋转/跨档拖窗）：未被手动覆盖时自动切棋盘档位
     this.offDevice = onDeviceClassChange(() => {
@@ -200,11 +226,6 @@ export default {
       this.$nextTick(() => {
         this.initStyle();
         this.restartGame();
-      });
-      this.HiAlert({
-        type: "secondary",
-        content: `已按屏幕调整为 ${area[0]} x ${area[1]} 棋盘`,
-        clear: true,
       });
     });
   },
@@ -226,6 +247,17 @@ export default {
       this.hudObserver.disconnect();
       this.hudObserver = null;
     }
+    if (this.onWindowResize) {
+      window.removeEventListener("resize", this.onWindowResize);
+      window.removeEventListener("orientationchange", this.onWindowResize);
+      this.onWindowResize = null;
+    }
+    if (this.onSyncLayout) {
+      window.removeEventListener("resize", this.onSyncLayout);
+      window.removeEventListener("orientationchange", this.onSyncLayout);
+      window.removeEventListener("xhs-window-info", this.onSyncLayout);
+      this.onSyncLayout = null;
+    }
     if (this.offDevice) {
       this.offDevice();
       this.offDevice = null;
@@ -243,13 +275,66 @@ export default {
     },
 
     /**
+     * rAF 合并 resize 回调，每帧最多重算一次格距
+     */
+    scheduleLayoutUpdate() {
+      if (this.layoutRaf) cancelAnimationFrame(this.layoutRaf);
+      this.layoutRaf = requestAnimationFrame(() => {
+        this.layoutRaf = null;
+        this.initStyle();
+      });
+    },
+
+    /**
      * HUD 实际高度写入 CSS 变量，供棋盘尺寸计算
      */
     syncHudHeight() {
       const hud = this.$el.querySelector(".hud");
-      if (hud) {
-        document.documentElement.style.setProperty("--hud-h", `${hud.offsetHeight}px`);
+      if (!hud) return;
+      const hudHeight = hud.offsetHeight;
+      document.documentElement.style.setProperty("--hud-h", `${hudHeight}px`);
+
+      const stage = this.$el.querySelector(".stage");
+      const hint = this.$el.querySelector(".stage_hint");
+      const dpad = this.$el.querySelector(".dpad");
+      const dpadWrap = this.$el.querySelector(".dpad_wrap");
+      const landscape = window.innerWidth > window.innerHeight;
+      const compact = window.innerWidth < 1024;
+      const marginTop = stage ? parseFloat(getComputedStyle(stage).marginTop) || 12 : 12;
+      const hintSpace = hint
+        ? hint.offsetHeight + (parseFloat(getComputedStyle(hint).marginTop) || 0)
+        : 0;
+
+      const rootStyle = getComputedStyle(this.$el);
+      const readInset = name => parseFloat(rootStyle.getPropertyValue(name)) || 0;
+      let bottomReserve =
+        parseFloat(
+          getComputedStyle(document.documentElement).getPropertyValue("--board-reserve")
+        ) || 76;
+      let extraBottomInset = 0;
+      if (compact && landscape) {
+        bottomReserve = 0;
+        extraBottomInset =
+          readInset("--container-bottom-inset") || readInset("--safe-area-inset-bottom");
+      } else if (
+        compact &&
+        dpad &&
+        dpadWrap &&
+        getComputedStyle(dpad).display !== "none"
+      ) {
+        bottomReserve =
+          dpad.offsetHeight + (parseFloat(getComputedStyle(dpadWrap).bottom) || 0) + 16;
+      } else {
+        extraBottomInset =
+          readInset("--container-bottom-inset") || readInset("--safe-area-inset-bottom");
       }
+
+      const widthLimit = compact && landscape ? window.innerWidth - 200 : window.innerWidth - 28;
+      const heightLimit =
+        window.innerHeight - hudHeight - bottomReserve - marginTop - hintSpace - extraBottomInset;
+      const stageSize = Math.max(120, Math.floor(Math.min(700, widthLimit, heightLimit)));
+      document.documentElement.style.setProperty("--stage-size", `${stageSize}px`);
+      this.$el.classList.toggle("board-compact", stageSize < 300);
     },
 
     /**
@@ -273,46 +358,35 @@ export default {
     /**
      * 选择模式
      */
-    chooseMode({ mode, label }) {
+    chooseMode({ mode }) {
       this.currentMode = mode;
       this.restartGame();
-      this.HiAlert({
-        type: "success",
-        content: `已切换为${label}`,
-      });
     },
 
     /**
      * 选择难度
      */
     chooseDifficulty({ speed, label }) {
-      let type = "";
+      this.difficulty = label;
       switch (speed) {
         case "normal":
-          this.speed = 80;
-          type = "primary";
+          this.speed = 130;
           break;
         case "hard":
-          this.speed = 60;
-          type = "warning";
+          this.speed = 90;
           break;
         case "crazy":
-          this.speed = 30;
-          type = "danger";
+          this.speed = 60;
           break;
       }
       this.isStop = true;
       clearInterval(this.moveTimer);
-      this.HiAlert({
-        type,
-        content: `难度已切换为${label}`,
-      });
     },
 
     /**
      * 选择棋盘size
      */
-    chooseBoard({ size, label }) {
+    chooseBoard({ size }) {
       switch (size) {
         case "border":
           this.boardBorder = !this.boardBorder;
@@ -336,10 +410,6 @@ export default {
           return;
       }
       this.boardByDevice = false;
-      this.HiAlert({
-        type: "success",
-        content: `棋盘已设置为${label}`,
-      });
       this.$nextTick(() => {
         this.initStyle();
         this.restartGame();
@@ -428,7 +498,15 @@ export default {
       if (direction != opposite[dir] && wait) {
         this.direction = dir;
         this.wait = false;
+        if (this.snake.length) {
+          const [row, col] = this.snake[0];
+          this.setCell(row, col, this.headClass());
+        }
       }
+    },
+
+    headClass() {
+      return `snake_head snake_head--${this.direction || "up"}`;
     },
 
     /**
@@ -518,7 +596,7 @@ export default {
         this.createFood();
       }
       // 增量绘制：每 tick 只有新头 + 旧头（降级为身体）两格变化
-      this.setCell(headAfter[0], headAfter[1], "snake_head");
+      this.setCell(headAfter[0], headAfter[1], this.headClass());
       const prevHead = snake[1];
       this.setCell(prevHead[0], prevHead[1], "snake_body");
     },
@@ -591,6 +669,174 @@ export default {
       this.restartGame();
     },
 
+    roundRect(ctx, x, y, width, height, radius) {
+      ctx.beginPath();
+      ctx.moveTo(x + radius, y);
+      ctx.arcTo(x + width, y, x + width, y + height, radius);
+      ctx.arcTo(x + width, y + height, x, y + height, radius);
+      ctx.arcTo(x, y + height, x, y, radius);
+      ctx.arcTo(x, y, x + width, y, radius);
+      ctx.closePath();
+    },
+
+    buildResultImage() {
+      const canvas = document.createElement("canvas");
+      canvas.width = 750;
+      canvas.height = 1000;
+      const ctx = canvas.getContext("2d");
+      if (!ctx) throw new Error("canvas unavailable");
+      const fontFamily =
+        "'PingFang SC', 'Hiragino Sans GB', 'Microsoft YaHei', -apple-system, BlinkMacSystemFont, sans-serif";
+
+      const background = ctx.createLinearGradient(0, 0, 750, 1000);
+      background.addColorStop(0, "#0b1220");
+      background.addColorStop(0.55, "#0f1b2f");
+      background.addColorStop(1, "#13233b");
+      ctx.fillStyle = background;
+      ctx.fillRect(0, 0, 750, 1000);
+
+      const glow = ctx.createRadialGradient(375, 360, 30, 375, 360, 380);
+      glow.addColorStop(0, "rgba(74, 222, 128, 0.2)");
+      glow.addColorStop(1, "rgba(74, 222, 128, 0)");
+      ctx.fillStyle = glow;
+      ctx.fillRect(0, 0, 750, 1000);
+
+      ctx.strokeStyle = "rgba(148, 163, 184, 0.28)";
+      ctx.lineWidth = 2;
+      this.roundRect(ctx, 36, 36, 678, 928, 40);
+      ctx.stroke();
+
+      ctx.textAlign = "center";
+      ctx.textBaseline = "middle";
+
+      ctx.fillStyle = "#94a3b8";
+      ctx.font = `600 24px ${fontFamily}`;
+      ctx.fillText("GLUTTONOUS SNAKE", 375, 118);
+
+      ctx.fillStyle = "#e2e8f0";
+      ctx.font = `700 60px ${fontFamily}`;
+      ctx.fillText("贪恰蛇", 375, 196);
+
+      ctx.fillStyle = "#94a3b8";
+      ctx.font = `400 28px ${fontFamily}`;
+      ctx.fillText("本次得分", 375, 330);
+
+      ctx.fillStyle = "#4ade80";
+      ctx.font = `700 170px ${fontFamily}`;
+      ctx.fillText(String(this.finalScore), 375, 470);
+
+      ctx.fillStyle = "#cbd5e1";
+      ctx.font = `400 30px ${fontFamily}`;
+      ctx.fillText(this.resultMeta, 375, 610);
+
+      ctx.strokeStyle = "rgba(148, 163, 184, 0.25)";
+      ctx.lineWidth = 2;
+      ctx.beginPath();
+      ctx.moveTo(130, 680);
+      ctx.lineTo(620, 680);
+      ctx.stroke();
+
+      const segment = 56;
+      const gap = 10;
+      const totalWidth = segment * 5 + gap * 4 + 56;
+      const startX = (750 - totalWidth) / 2;
+      const snakeY = 748;
+      for (let index = 0; index < 5; index++) {
+        this.roundRect(ctx, startX + index * (segment + gap), snakeY, segment, segment, 14);
+        ctx.fillStyle = index === 4 ? "#4ade80" : "#22c55f";
+        ctx.fill();
+      }
+      const headX = startX + 4 * (segment + gap);
+      ctx.fillStyle = "#0b1220";
+      ctx.beginPath();
+      ctx.arc(headX + 38, snakeY + 20, 5, 0, Math.PI * 2);
+      ctx.fill();
+      ctx.beginPath();
+      ctx.arc(headX + 38, snakeY + 36, 5, 0, Math.PI * 2);
+      ctx.fill();
+
+      ctx.fillStyle = "#f87171";
+      ctx.beginPath();
+      ctx.arc(startX + 5 * (segment + gap) + 20, snakeY + segment / 2, 20, 0, Math.PI * 2);
+      ctx.fill();
+
+      ctx.fillStyle = "#94a3b8";
+      ctx.font = `400 24px ${fontFamily}`;
+      ctx.fillText("小红书小工具 · 来挑战我的记录", 375, 910);
+
+      return canvas.toDataURL("image/jpeg", 0.92);
+    },
+
+    getShareCopy() {
+      const score = this.finalScore;
+      let title;
+      let line;
+      if (score <= 0) {
+        title = "贪恰蛇 0 分，谁来救救我";
+        line = "开局就迷路，这条蛇比想象中难带。来试试你能拿多少分？";
+      } else if (score < 10) {
+        title = `贪恰蛇 ${score} 分，刚热完身`;
+        line = "刚找到一点手感，感觉还能再往上冲。来试试你能不能超过我？";
+      } else if (score < 20) {
+        title = `贪恰蛇 ${score} 分，有点上头`;
+        line = "越玩越上头，这个分数还没到我的极限。来试试你能不能超过我？";
+      } else if (score < 40) {
+        title = `贪恰蛇 ${score} 分，等你来破`;
+        line = "这个分数应该还算能打，看看你能不能超过我？";
+      } else {
+        title = `贪恰蛇 ${score} 分，记录等你破`;
+        line = "手感和运气都在线，这个记录先放在这里。来试试你能不能超过我？";
+      }
+      return {
+        title,
+        content: `我在小红书小工具「贪恰蛇」里拿到了 ${score} 分（${this.resultMeta}）。\n${line}`,
+      };
+    },
+
+    async shareResult() {
+      if (this.sharing) return;
+      this.sharing = true;
+      try {
+        const dataUrl = this.buildResultImage();
+        const miniTool = window.xhs && window.xhs.miniTool;
+        if (!miniTool) {
+          this.HiAlert({ type: "warning", content: "请在小红书 App 内分享", clear: true });
+          return;
+        }
+
+        let imageUrl = dataUrl;
+        if (typeof miniTool.writeTempFile === "function") {
+          try {
+            const result = await miniTool.writeTempFile({ data: dataUrl });
+            if (result && result.filePath) imageUrl = result.filePath;
+          } catch (error) {}
+        }
+
+        if (typeof miniTool.postNote === "function") {
+          const copy = this.getShareCopy();
+          await miniTool.postNote({
+            title: copy.title,
+            content: copy.content,
+            pageType: "photo_publish",
+            mediaInfo: { image_resources: [{ url: imageUrl }] },
+          });
+          return;
+        }
+
+        if (typeof miniTool.saveImageToPhotosAlbum === "function") {
+          await miniTool.saveImageToPhotosAlbum({ filePath: imageUrl });
+          this.HiAlert({ type: "success", content: "结算图已保存到相册", clear: true });
+          return;
+        }
+
+        this.HiAlert({ type: "warning", content: "当前版本暂不支持分享", clear: true });
+      } catch (error) {
+        this.HiAlert({ type: "danger", content: "分享失败，请稍后重试", clear: true });
+      } finally {
+        this.sharing = false;
+      }
+    },
+
     /**
      * 判断是否吃到了食物
      */
@@ -614,22 +860,38 @@ export default {
         snakeLength: l,
         checkerArea: [r, c],
       } = this;
-      const row = ~~(Math.random() * (r - l - 1) + 1);
-      const col = ~~(Math.random() * (c - l - 1) + 1);
-      const head = [row, col];
+      const margin = Math.max(6, Math.floor(Math.min(r, c) * 0.2));
+      const directions = ["up", "down", "left", "right"];
+      const direction = directions[Math.floor(Math.random() * directions.length)];
+      const pick = (min, max) => {
+        if (max <= min) return min;
+        return min + Math.floor(Math.random() * (max - min + 1));
+      };
       const body = [];
-      const ran = Math.random();
-      if (ran > 0.5) {
-        for (let i = row + 1; i < row + l; i++) {
-          body.push([i, col]);
-          this.direction = "up";
+      let head;
+
+      if (direction === "up" || direction === "down") {
+        const minRow = direction === "up" ? margin : margin + l - 1;
+        const maxRow = direction === "up" ? r - l - margin : r - 1 - margin;
+        const row = pick(minRow, maxRow);
+        const col = pick(margin, c - margin - 1);
+        head = [row, col];
+        for (let i = 1; i < l; i++) {
+          body.push(direction === "up" ? [row + i, col] : [row - i, col]);
         }
       } else {
-        for (let i = col + 1; i < col + l; i++) {
-          body.push([row, i]);
-          this.direction = "left";
+        const minCol = direction === "left" ? margin : margin + l - 1;
+        const maxCol = direction === "left" ? c - l - margin : c - 1 - margin;
+        const col = pick(minCol, maxCol);
+        const row = pick(margin, r - margin - 1);
+        head = [row, col];
+        for (let i = 1; i < l; i++) {
+          body.push(direction === "left" ? [row, col + i] : [row, col - i]);
         }
       }
+
+      this.direction = direction;
+      this.wait = true;
       this.snake = [head, ...body];
     },
 
@@ -648,7 +910,7 @@ export default {
     drawSnake() {
       const { snake } = this;
       snake.forEach(([a, b], idx) => {
-        this.setCell(a, b, idx == 0 ? "snake_head" : "snake_body");
+        this.setCell(a, b, idx == 0 ? this.headClass() : "snake_body");
       });
     },
 

@@ -50,7 +50,15 @@ export default {
 .config-select {
   display: inline-flex;
   align-items: center;
+}
+.config-select > * + * {
+  margin-left: 6px;
+}
+.supports-flex-gap .config-select {
   gap: 6px;
+}
+.supports-flex-gap .config-select > * + * {
+  margin-left: 0;
 }
 .config-select_title {
   font-size: 14px;

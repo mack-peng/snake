@@ -62,11 +62,14 @@ const store = new Vuex.Store({
     /**
      * 初始化store（sessionStorage 快照恢复）
      */
-    initStore(state, _this) {
-      if (GET_SESSION("store")) {
-        _this.$store.replaceState(
-          Object.assign({}, state, JSON.parse(GET_SESSION("store")))
-        );
+    initStore(context, _this) {
+      const snapshot = GET_SESSION("store");
+      if (snapshot) {
+        try {
+          _this.$store.replaceState(
+            Object.assign({}, _this.$store.state, JSON.parse(snapshot))
+          );
+        } catch (error) {}
         DEL_SESSION("store");
       }
     },

@@ -1,12 +1,52 @@
 import store from "../store/index.js";
 
-const SET_SESSION = (E, F) => window.sessionStorage.setItem(E, F);
-const GET_SESSION = G => window.sessionStorage.getItem(G);
-const DEL_SESSION = K => window.sessionStorage.removeItem(K);
+const SET_SESSION = (E, F) => {
+  try {
+    window.sessionStorage.setItem(E, F);
+    return true;
+  } catch (error) {
+    return false;
+  }
+};
+const GET_SESSION = G => {
+  try {
+    return window.sessionStorage.getItem(G);
+  } catch (error) {
+    return null;
+  }
+};
+const DEL_SESSION = K => {
+  try {
+    window.sessionStorage.removeItem(K);
+    return true;
+  } catch (error) {
+    return false;
+  }
+};
 
-const SET_LOCAL = (H, I) => window.localStorage.setItem(H, I);
-const GET_LOCAL = J => window.localStorage.getItem(J);
-const DEL_LOCAL = J => window.localStorage.removeItem(J);
+const SET_LOCAL = (H, I) => {
+  try {
+    window.localStorage.setItem(H, I);
+    return true;
+  } catch (error) {
+    return false;
+  }
+};
+const GET_LOCAL = J => {
+  try {
+    return window.localStorage.getItem(J);
+  } catch (error) {
+    return null;
+  }
+};
+const DEL_LOCAL = J => {
+  try {
+    window.localStorage.removeItem(J);
+    return true;
+  } catch (error) {
+    return false;
+  }
+};
 
 const COMMIT = (STR, DATA) => {
   if (typeof STR === "string") return store.commit(STR, DATA);
